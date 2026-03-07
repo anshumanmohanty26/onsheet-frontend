@@ -11,10 +11,10 @@ export function middleware(request: NextRequest) {
     pathname.startsWith("/_next") ||
     pathname.startsWith("/api");
 
-  // Has an access_token cookie = likely authenticated
-  const hasToken =
-    request.cookies.has("access_token") ||
-    request.cookies.has("accessToken");
+  // The real httpOnly accessToken cookie is set on the API domain and
+  // is invisible to this middleware. The frontend sets a lightweight
+  // "session" marker cookie after login/register to signal auth state.
+  const hasToken = request.cookies.has("session");
 
   if (!isPublic && !hasToken) {
     const loginUrl = new URL("/login", request.url);

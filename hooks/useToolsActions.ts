@@ -8,6 +8,8 @@ interface Options {
   onNavigate: (coord: CellCoord) => void;
 }
 
+import { isFormula } from "@/lib/cell/validator";
+
 /** Find & Replace modal state and cell statistics toast. */
 export function useToolsActions({ cells, setCellCrdt, onNavigate }: Options) {
   const [showFindReplace, setShowFindReplace] = useState(false);
@@ -15,7 +17,7 @@ export function useToolsActions({ cells, setCellCrdt, onNavigate }: Options) {
 
   const handleCellStats = useCallback(() => {
     const filled = Object.values(cells).filter((c) => c.raw && c.raw !== "").length;
-    const formulaCount = Object.values(cells).filter((c) => c.raw?.startsWith("=")).length;
+    const formulaCount = Object.values(cells).filter((c) => c.raw && isFormula(c.raw)).length;
     setStatsToast(`${filled} cells with data · ${formulaCount} formula cells`);
     setTimeout(() => setStatsToast(null), 3500);
   }, [cells]);

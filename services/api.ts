@@ -47,11 +47,12 @@ async function request<T>(
     if (refreshed) {
       return request<T>(path, init, true /* isRetry */);
     }
-    // Refresh failed — redirect to login only if not already on an auth route
+    // Refresh failed — clear the session marker and redirect to login
     if (typeof window !== "undefined") {
       const { pathname } = window.location;
       const isAuthRoute = pathname === "/login" || pathname === "/signup";
       if (!isAuthRoute) {
+        document.cookie = "session=; path=/; max-age=0";
         window.location.href = "/login";
       }
     }

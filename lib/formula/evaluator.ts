@@ -3,6 +3,7 @@ import type { ASTNode, EvalContext, FormulaValue } from "./types";
 import { parse } from "./parser";
 import { FUNCTIONS } from "./functions";
 import { cellRef, colLabelToIndex, parseCellRef } from "@/lib/utils/coordinates";
+import { isFormula } from "@/lib/cell/validator";
 
 /**
  * Evaluate a formula string (without leading '=') against a cell map.
@@ -21,7 +22,7 @@ function buildContext(cells: CellMap, visiting: Set<string>): EvalContext {
     const cell = cells[ref];
     if (!cell) return "";
     // If the cell itself is a formula, recursively evaluate it
-    if (cell.raw.startsWith("=")) {
+    if (isFormula(cell.raw)) {
       visiting.add(ref);
       const result = evaluate(cell.raw.slice(1), cells);
       visiting.delete(ref);

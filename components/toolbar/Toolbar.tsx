@@ -2,6 +2,10 @@
 
 import { useRef } from "react";
 import type { CellStyle } from "@/types/cell";
+import type { NumberFormatId } from "@/constants/formats";
+import { AlignmentButtons } from "./AlignmentButtons";
+import { FormatBar } from "./FormatBar";
+import { NumberFormatSelector } from "./NumberFormatSelector";
 
 interface ToolbarProps {
   style?: CellStyle;
@@ -124,41 +128,8 @@ export function Toolbar({ style = {}, onStyleChange, onUndo, onRedo }: ToolbarPr
 
       <Divider />
 
-      {/* Bold */}
-      <ToolbarButton
-        title="Bold (Ctrl+B)"
-        active={style.bold}
-        onClick={() => onStyleChange({ bold: !style.bold })}
-      >
-        <span className="font-bold text-sm leading-none">B</span>
-      </ToolbarButton>
-
-      {/* Italic */}
-      <ToolbarButton
-        title="Italic (Ctrl+I)"
-        active={style.italic}
-        onClick={() => onStyleChange({ italic: !style.italic })}
-      >
-        <span className="italic font-serif text-sm leading-none">I</span>
-      </ToolbarButton>
-
-      {/* Underline */}
-      <ToolbarButton
-        title="Underline (Ctrl+U)"
-        active={style.underline}
-        onClick={() => onStyleChange({ underline: !style.underline })}
-      >
-        <span className="underline text-sm leading-none">U</span>
-      </ToolbarButton>
-
-      {/* Strikethrough */}
-      <ToolbarButton
-        title="Strikethrough"
-        active={style.strikethrough}
-        onClick={() => onStyleChange({ strikethrough: !style.strikethrough })}
-      >
-        <span className="line-through text-sm leading-none">S</span>
-      </ToolbarButton>
+      {/* Bold / Italic / Underline / Strikethrough */}
+      <FormatBar style={style} onStyleChange={onStyleChange} />
 
       <Divider />
 
@@ -213,38 +184,11 @@ export function Toolbar({ style = {}, onStyleChange, onUndo, onRedo }: ToolbarPr
 
       <Divider />
 
-      {/* Align left */}
-      <ToolbarButton
-        title="Align left (Ctrl+Shift+L)"
-        active={style.horizontalAlign === "left" || !style.horizontalAlign}
-        onClick={() => onStyleChange({ horizontalAlign: "left" })}
-      >
-        <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="15" y2="12" /><line x1="3" y1="18" x2="18" y2="18" />
-        </svg>
-      </ToolbarButton>
-
-      {/* Align center */}
-      <ToolbarButton
-        title="Align center (Ctrl+Shift+E)"
-        active={style.horizontalAlign === "center"}
-        onClick={() => onStyleChange({ horizontalAlign: "center" })}
-      >
-        <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <line x1="3" y1="6" x2="21" y2="6" /><line x1="6" y1="12" x2="18" y2="12" /><line x1="4" y1="18" x2="20" y2="18" />
-        </svg>
-      </ToolbarButton>
-
-      {/* Align right */}
-      <ToolbarButton
-        title="Align right (Ctrl+Shift+R)"
-        active={style.horizontalAlign === "right"}
-        onClick={() => onStyleChange({ horizontalAlign: "right" })}
-      >
-        <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <line x1="3" y1="6" x2="21" y2="6" /><line x1="9" y1="12" x2="21" y2="12" /><line x1="6" y1="18" x2="21" y2="18" />
-        </svg>
-      </ToolbarButton>
+      {/* Alignment */}
+      <AlignmentButtons
+        value={style.horizontalAlign}
+        onChange={(align) => onStyleChange({ horizontalAlign: align })}
+      />
 
       <Divider />
 
@@ -259,6 +203,14 @@ export function Toolbar({ style = {}, onStyleChange, onUndo, onRedo }: ToolbarPr
           <path d="M10 13l-3 3 3 3" />
         </svg>
       </ToolbarButton>
+
+      <Divider />
+
+      {/* Number format */}
+      <NumberFormatSelector
+        value={style.numberFormat}
+        onChange={(fmt: NumberFormatId) => onStyleChange({ numberFormat: fmt })}
+      />
 
     </div>
   );
