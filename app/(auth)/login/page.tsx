@@ -25,8 +25,8 @@ function validate(form: FormState): Errors {
   else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
     errors.email = "Enter a valid email address.";
   if (!form.password) errors.password = "Password is required.";
-  else if (form.password.length < 6)
-    errors.password = "Password must be at least 6 characters.";
+  else if (form.password.length < 8)
+    errors.password = "Password must be at least 8 characters.";
   return errors;
 }
 
@@ -58,7 +58,9 @@ export default function LoginPage() {
     setErrors({});
     try {
       await login({ email: form.email, password: form.password });
-      router.replace("/dashboard");
+      const params = new URLSearchParams(window.location.search);
+      const next = params.get("next");
+      router.replace(next && next.startsWith("/") ? next : "/dashboard");
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
         setErrors({ general: "Invalid email or password." });

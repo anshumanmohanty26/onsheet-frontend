@@ -32,7 +32,6 @@ pnpm-debug.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Copilot / AI agent skills (local dev tooling, not project code)
 .agents/
 .agent/
 .claude/

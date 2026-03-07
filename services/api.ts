@@ -47,9 +47,13 @@ async function request<T>(
     if (refreshed) {
       return request<T>(path, init, true /* isRetry */);
     }
-    // Refresh failed — redirect to login
+    // Refresh failed — redirect to login only if not already on an auth route
     if (typeof window !== "undefined") {
-      window.location.href = "/login";
+      const { pathname } = window.location;
+      const isAuthRoute = pathname === "/login" || pathname === "/signup";
+      if (!isAuthRoute) {
+        window.location.href = "/login";
+      }
     }
     throw new ApiError(401, "Session expired. Please log in again.");
   }

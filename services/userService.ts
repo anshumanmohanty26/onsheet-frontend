@@ -15,10 +15,10 @@ export interface AuthResponse {
 
 export const userService = {
   register: (body: { name: string; email: string; password: string }) =>
-    api.post<AuthResponse>("/auth/register", body),
+    api.post<User>("/auth/register", body),
 
   login: (body: { email: string; password: string }) =>
-    api.post<AuthResponse>("/auth/login", body),
+    api.post<User>("/auth/login", body),
 
   logout: () => api.post<void>("/auth/logout"),
 
