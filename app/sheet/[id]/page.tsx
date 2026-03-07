@@ -1,0 +1,522 @@
+"use client";
+
+import { use, useCallback, useEffect, useReducer, useRef, useState } from "react";
+
+import { Header } from "@/components/header/Header";
+import { MenuBar } from "@/components/header/MenuBar";
+import { Toolbar } from "@/components/toolbar/Toolbar";
+import { FormulaBar } from "@/components/formulabar/FormulaBar";
+import { Grid } from "@/components/grid/Grid";
+import { SheetTabs } from "@/components/sheet-tabs/SheetTabs";
+import { ContextMenu } from "@/components/ui/ContextMenu";
+import { KeyboardShortcutsModal } from "@/components/ui/KeyboardShortcutsModal";
+import { FindReplaceModal } from "@/components/ui/FindReplaceModal";
+import { VersionHistoryModal } from "@/components/ui/VersionHistoryModal";
+import { AiPanel } from "@/components/header/AiPanel";
+import { CommentModal } from "@/components/ui/CommentModal";
+import { evaluate } from "@/lib/formula/evaluator";
+import { useSpreadsheet } from "@/hooks/useSpreadsheet";
+import { useCollaboration } from "@/hooks/useCollaboration";
+import { useKeyboard } from "@/hooks/useKeyboard";
+import { useClipboard } from "@/hooks/useClipboard";
+import { useContextMenu } from "@/hooks/useContextMenu";
+import { useViewOptions } from "@/hooks/useViewOptions";
+import { useFileActions } from "@/hooks/useFileActions";
+import { useFormatActions } from "@/hooks/useFormatActions";
+import { useDataActions } from "@/hooks/useDataActions";
+import { useToolsActions } from "@/hooks/useToolsActions";
+import { GRID } from "@/constants/defaults";
+import {
+  initialSelectionState,
+  selectionReducer,
+  initialUIState,
+  uiReducer,
+} from "@/store";
+import { cellRef } from "@/lib/utils/coordinates";
+import type { CellCoord } from "@/types/selection";
+import type { CellStyle } from "@/types/cell";
+
+interface PageProps {
+  params: Promise<{ id: string }>;
+}
+
+export default function SheetPage({ params }: PageProps) {
+  const { id: workbookId } = use(params);
+  // Capture the initial ?tab= once at mount — avoids re-renders from useSearchParams
+  const initialTabRef = useRef(
+    typeof window !== "undefined"
+      ? new URLSearchParams(window.location.search).get("tab")
+      : null,
+  );
+
+  const { state, dispatch: spreadsheetDispatch, loadWorkbook, switchSheet, addSheet, deleteSheet, renameWorkbook } =
+    useSpreadsheet();
+
+  const { setCellCrdt, undo, redo, broadcastCursor, loadIntoCrdt } = useCollaboration({
+    sheetId: state.activeSheetId,
+    spreadsheetDispatch,
+  });
+
+  const [sel, selDispatch] = useReducer(selectionReducer, initialSelectionState);
+  const [ui, uiDispatch] = useReducer(uiReducer, initialUIState);
+  const [editingRef, setEditingRef] = useState<string | null>(null);
+  const [totalRows, setTotalRows] = useState<number>(GRID.ROWS);
+
+  // ── Effects ───────────────────────────────────────────────────────────────
+
+  useEffect(() => { loadWorkbook(workbookId, initialTabRef.current); }, [workbookId, loadWorkbook]);
+
+  // Once the sheet finishes loading (loading goes false), populate the CRDT doc
+  // with the freshly-fetched cells so undo correctly reverts to the prior DB value
+  // rather than reverting to an empty string.
+  useEffect(() => {
+    if (state.loading || !state.activeSheetId) return;
+    loadIntoCrdt(
+      Object.entries(state.cells).map(([ref, data]) => ({
+        ref,
+        raw: data.raw,
+        style: data.style,
+        timestamp: 0,
+        peerId: "__initial__",
+      })),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.loading, state.activeSheetId, loadIntoCrdt]); // state.cells intentionally omitted
+
+  useEffect(() => {
+    if (!sel.active) { uiDispatch({ type: "SET_FORMULA_BAR", value: "" }); return; }
+    const cell = state.cells[cellRef(sel.active.row, sel.active.col)];
+    uiDispatch({ type: "SET_FORMULA_BAR", value: cell?.raw ?? "" });
+  }, [sel.active, state.cells]);
+
+  useEffect(() => {
+    if (!sel.active) return;
+    broadcastCursor(cellRef(sel.active.row, sel.active.col));
+  }, [sel.active, broadcastCursor]);
+
+  // ── Cell interaction ──────────────────────────────────────────────────────
+
+  const startEditAt = useCallback((coord: CellCoord, char?: string) => {
+    selDispatch({ type: "SET_ACTIVE", coord });
+    const ref = cellRef(coord.row, coord.col);
+    setEditingRef(ref);
+    uiDispatch({ type: "SET_EDITING", editing: true });
+    uiDispatch({
+      type: "SET_FORMULA_BAR",
+      value: char !== undefined ? char : (state.cells[ref]?.raw ?? ""),
+    });
+  }, [state.cells]);
+
+  const commitEdit = useCallback((value: string, move?: { dr: number; dc: number }) => {
+    if (!sel.active) return;
+    const ref = cellRef(sel.active.row, sel.active.col);
+    // Evaluate the formula on the client so the result travels with the edit.
+    // Both the local optimistic update and the backend broadcast will carry
+    // the evaluated value, meaning peers instantly see the result without a reload.
+    const computed = value.startsWith("=")
+      ? String(evaluate(value.slice(1), state.cells))
+      : value;
+    setCellCrdt(ref, value, state.cells[ref]?.style, computed);
+    setEditingRef(null);
+    uiDispatch({ type: "SET_EDITING", editing: false });
+    uiDispatch({ type: "SET_FORMULA_BAR", value });
+    if (move) {
+      selDispatch({ type: "SET_ACTIVE", coord: {
+        row: Math.max(0, sel.active.row + move.dr),
+        col: Math.max(0, sel.active.col + move.dc),
+      }});
+    }
+  }, [sel.active, state.cells, setCellCrdt]);
+
+  const cancelEdit = useCallback(() => {
+    setEditingRef(null);
+    uiDispatch({ type: "SET_EDITING", editing: false });
+    if (sel.active) {
+      const cell = state.cells[cellRef(sel.active.row, sel.active.col)];
+      uiDispatch({ type: "SET_FORMULA_BAR", value: cell?.raw ?? "" });
+    }
+  }, [sel.active, state.cells]);
+
+  const handleCellClick = useCallback((coord: CellCoord) => {
+    setEditingRef(null);
+    selDispatch({ type: "SET_ACTIVE", coord });
+    uiDispatch({ type: "SET_EDITING", editing: false });
+    const cell = state.cells[cellRef(coord.row, coord.col)];
+    uiDispatch({ type: "SET_FORMULA_BAR", value: cell?.raw ?? "" });
+  }, [state.cells]);
+
+  const handleSelectionDrag = useCallback((coord: CellCoord) => {
+    if (!sel.active) return;
+    selDispatch({ type: "SET_RANGE", range: { start: sel.active, end: coord } });
+  }, [sel.active]);
+
+  const handleStyleChange = useCallback((change: Partial<CellStyle>) => {
+    if (!sel.active) return;
+    const range = sel.range ?? { start: sel.active, end: sel.active };
+    const rowStart = Math.min(range.start.row, range.end.row);
+    const rowEnd = Math.max(range.start.row, range.end.row);
+    const colStart = Math.min(range.start.col, range.end.col);
+    const colEnd = Math.max(range.start.col, range.end.col);
+    for (let r = rowStart; r <= rowEnd; r++) {
+      for (let c = colStart; c <= colEnd; c++) {
+        const ref = cellRef(r, c);
+        const cell = state.cells[ref];
+        // Preserve the existing computed (formula result) so style changes
+        // don't accidentally regress formula cells to showing raw formula text.
+        setCellCrdt(ref, cell?.raw ?? "", { ...(cell?.style ?? {}), ...change }, cell?.computed);
+      }
+    }
+  }, [sel.active, sel.range, state.cells, setCellCrdt]);
+
+  // ── Derived ───────────────────────────────────────────────────────────────
+
+  const activeStyle = sel.active
+    ? state.cells[cellRef(sel.active.row, sel.active.col)]?.style
+    : undefined;
+
+  // ── Feature hooks ─────────────────────────────────────────────────────────
+
+  const view = useViewOptions();
+
+  const file = useFileActions({
+    cells: state.cells,
+    workbookTitle: state.workbookTitle,
+    totalRows,
+    activeSheetId: state.activeSheetId,
+  });
+
+  const format = useFormatActions({
+    active: sel.active,
+    cells: state.cells,
+    activeStyle,
+    handleStyleChange,
+    setCellCrdt,
+  });
+
+  const data = useDataActions({ active: sel.active, dispatch: spreadsheetDispatch });
+
+  const navigateToCell = useCallback(
+    (coord: CellCoord) => selDispatch({ type: "SET_ACTIVE", coord }),
+    [],
+  );
+
+  const tools = useToolsActions({
+    cells: state.cells,
+    setCellCrdt,
+    onNavigate: navigateToCell,
+  });
+
+  // ── Clipboard ─────────────────────────────────────────────────────────────
+
+  const { copy, cut, paste } = useClipboard({
+    cells: state.cells,
+    selection: sel.range,
+    onPaste: (ref, d) => setCellCrdt(ref, d.raw ?? "", d.style),
+    onClear: (ref) => setCellCrdt(ref, "", state.cells[ref]?.style),
+  });
+
+  // ── Context menu ──────────────────────────────────────────────────────────
+
+  const { contextMenu, openContextMenu, closeContextMenu } = useContextMenu();
+
+  const handleContextMenu = useCallback(
+    (e: React.MouseEvent, coord: CellCoord) => {
+      selDispatch({ type: "SET_ACTIVE", coord });
+      openContextMenu(e);
+    },
+    [openContextMenu],
+  );
+
+  // ── Resize / load-more ────────────────────────────────────────────────────
+
+  const handleColumnResize = useCallback(
+    (col: number, width: number) => spreadsheetDispatch({ type: "SET_COLUMN_WIDTH", col, width }),
+    [spreadsheetDispatch],
+  );
+
+  const handleRowResize = useCallback(
+    (row: number, height: number) => spreadsheetDispatch({ type: "SET_ROW_HEIGHT", row, height }),
+    [spreadsheetDispatch],
+  );
+
+  const handleLoadMore = useCallback(() => setTotalRows((r) => r + 1000), []);
+
+  // ── Sheet tabs ────────────────────────────────────────────────────────────
+
+  const handleAddSheet = useCallback(async () => {
+    await addSheet(`Sheet${state.sheets.length + 1}`);
+  }, [state.sheets.length, addSheet]);
+
+  const handleSwitchSheet = useCallback(async (id: string) => {
+    window.history.replaceState(null, "", `/sheet/${workbookId}?tab=${id}`);
+    await switchSheet(id);
+  }, [switchSheet, workbookId]);
+
+  // ── Keyboard shortcuts + modal ────────────────────────────────────────────
+
+  const [showShortcuts, setShowShortcuts] = useState(false);
+  const [showVersionHistory, setShowVersionHistory] = useState(false);
+  const [showAiPanel, setShowAiPanel] = useState(false);
+  const [commentCell, setCommentCell] = useState<{ row: number; col: number } | null>(null);
+
+  useKeyboard({
+    active: sel.active,
+    isEditing: ui.isEditingCell,
+    onNavigate: (dr, dc) => {
+      if (!sel.active) return;
+      selDispatch({ type: "SET_ACTIVE", coord: {
+        row: Math.max(0, sel.active.row + dr),
+        col: Math.max(0, sel.active.col + dc),
+      }});
+    },
+    onStartEdit: (char) => { if (sel.active) startEditAt(sel.active, char); },
+    onCommit: () => commitEdit(ui.formulaBarValue),
+    onCancel: cancelEdit,
+    onDelete: () => {
+      if (!sel.active) return;
+      const ref = cellRef(sel.active.row, sel.active.col);
+      setCellCrdt(ref, "", state.cells[ref]?.style);
+      uiDispatch({ type: "SET_FORMULA_BAR", value: "" });
+    },
+    onUndo: undo,
+    onRedo: redo,
+    onCopy: () => copy(),
+    onCut: () => cut(),
+    onPaste: () => { if (sel.active) paste(sel.active.row, sel.active.col); },
+    onBold: () => handleStyleChange({ bold: !activeStyle?.bold }),
+    onItalic: () => handleStyleChange({ italic: !activeStyle?.italic }),
+    onUnderline: () => handleStyleChange({ underline: !activeStyle?.underline }),
+    onFindReplace: tools.openFindReplace,
+  });
+
+  // ── Render ────────────────────────────────────────────────────────────────
+
+  if (state.error) {
+    return (
+      <div className="flex h-screen items-center justify-center text-red-500 text-sm">
+        {state.error}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col h-screen overflow-hidden bg-white">
+      <Header
+        title={state.workbookTitle}
+        workbookId={state.workbookId}
+        onRename={renameWorkbook}
+        onAiToggle={() => setShowAiPanel((v) => !v)}
+        aiOpen={showAiPanel}
+      />
+
+      <MenuBar
+        onUndo={undo} onRedo={redo}
+        onCut={() => cut()} onCopy={() => copy()}
+        onPaste={() => { if (sel.active) paste(sel.active.row, sel.active.col); }}
+        onDownloadCsv={file.handleDownloadCsv}
+        onShare={file.handleShare}
+        onVersionHistory={() => setShowVersionHistory(true)}
+        onInsertRowAbove={data.handleInsertRowAbove}
+        onInsertRowBelow={data.handleInsertRowBelow}
+        onInsertColLeft={data.handleInsertColLeft}
+        onInsertColRight={data.handleInsertColRight}
+        onInsertComment={() => {
+          if (sel.active) setCommentCell({ row: sel.active.row, col: sel.active.col });
+        }}
+        onSortAsc={data.handleSortAsc}
+        onSortDesc={data.handleSortDesc}
+        onDeleteRow={data.handleDeleteRow}
+        onDeleteCol={data.handleDeleteCol}
+        onRemoveDuplicates={data.handleRemoveDuplicates}
+        showGridlines={view.showGridlines}
+        onToggleGridlines={view.toggleGridlines}
+        showFormulaBar={view.showFormulaBar}
+        onToggleFormulaBar={view.toggleFormulaBar}
+        showHeaders={view.showHeaders}
+        onToggleHeaders={view.toggleHeaders}
+        zoom={view.zoom}
+        onZoomIn={view.zoomIn}
+        onZoomOut={view.zoomOut}
+        onZoomReset={view.zoomReset}
+        frozenRows={view.frozenRows}
+        onFreezeFirstRow={view.freezeFirstRow}
+        onUnfreeze={view.unfreeze}
+        onBold={() => handleStyleChange({ bold: !activeStyle?.bold })}
+        onItalic={() => handleStyleChange({ italic: !activeStyle?.italic })}
+        onUnderline={() => handleStyleChange({ underline: !activeStyle?.underline })}
+        onStrikethrough={format.handleStrikethrough}
+        onAlignLeft={format.handleAlignLeft}
+        onAlignCenter={format.handleAlignCenter}
+        onAlignRight={format.handleAlignRight}
+        onWrapText={() => handleStyleChange({ wrapText: !activeStyle?.wrapText })}
+        wrapText={!!activeStyle?.wrapText}
+        onClearFormatting={format.handleClearFormatting}
+        onFormatNumber={format.handleFormatNumber}
+        onFindReplace={tools.openFindReplace}
+        onCellStats={tools.handleCellStats}
+        onTrimWhitespace={() => {
+          if (!sel.active) return;
+          const range = sel.range ?? { start: sel.active, end: sel.active };
+          const rowStart = Math.min(range.start.row, range.end.row);
+          const rowEnd = Math.max(range.start.row, range.end.row);
+          const colStart = Math.min(range.start.col, range.end.col);
+          const colEnd = Math.max(range.start.col, range.end.col);
+          for (let r = rowStart; r <= rowEnd; r++) {
+            for (let c = colStart; c <= colEnd; c++) {
+              const ref = cellRef(r, c);
+              const cell = state.cells[ref];
+              if (!cell?.raw) continue;
+              const trimmed = cell.raw.trim();
+              if (trimmed !== cell.raw)
+                setCellCrdt(ref, trimmed, cell.style, cell.computed);
+            }
+          }
+        }}
+        onShowShortcuts={() => setShowShortcuts(true)}
+      />
+
+      <Toolbar style={activeStyle} onStyleChange={handleStyleChange} onUndo={undo} onRedo={redo} />
+
+      {view.showFormulaBar && (
+        <FormulaBar
+          active={sel.active}
+          value={ui.formulaBarValue}
+          onChange={(v) => uiDispatch({ type: "SET_FORMULA_BAR", value: v })}
+          onCommit={(v) => commitEdit(v)}
+          onCancel={cancelEdit}
+          onFocus={() => {
+            if (sel.active && !ui.isEditingCell) {
+              setEditingRef(cellRef(sel.active.row, sel.active.col));
+              uiDispatch({ type: "SET_EDITING", editing: true });
+            }
+          }}
+        />
+      )}
+
+      {state.loading ? (
+        <div className="flex flex-1 items-center justify-center text-gray-400 text-sm gap-2">
+          <span className="size-5 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
+          Loading sheet…
+        </div>
+      ) : (
+        <Grid
+          cells={state.cells}
+          totalRows={totalRows}
+          totalCols={GRID.COLS}
+          columnWidths={state.columnWidths}
+          rowHeights={state.rowHeights}
+          active={sel.active}
+          selection={sel.range}
+          editingRef={editingRef}
+          editValue={ui.formulaBarValue}
+          onCellClick={handleCellClick}
+          onCellDoubleClick={(coord) => startEditAt(coord)}
+          onEditChange={(v) => uiDispatch({ type: "SET_FORMULA_BAR", value: v })}
+          onEditCommit={commitEdit}
+          onEditCancel={cancelEdit}
+          onSelectionDrag={handleSelectionDrag}
+          onColumnResize={handleColumnResize}
+          onRowResize={handleRowResize}
+          onContextMenu={handleContextMenu}
+          onLoadMore={handleLoadMore}
+          showGridlines={view.showGridlines}
+          showHeaders={view.showHeaders}
+          zoom={view.zoom}
+          frozenRows={view.frozenRows}
+        />
+      )}
+
+      <SheetTabs
+        sheets={state.sheets}
+        activeSheetId={state.activeSheetId}
+        onSelect={handleSwitchSheet}
+        onAddSheet={handleAddSheet}
+        onDeleteSheet={deleteSheet}
+      />
+
+      <ContextMenu
+        visible={contextMenu.visible}
+        x={contextMenu.x}
+        y={contextMenu.y}
+        onClose={closeContextMenu}
+        items={[
+          { label: "Cut", shortcut: "⌘X", onClick: () => cut() },
+          { label: "Copy", shortcut: "⌘C", onClick: () => copy() },
+          { label: "Paste", shortcut: "⌘V", onClick: () => { if (sel.active) paste(sel.active.row, sel.active.col); } },
+          { label: "", divider: true, onClick: () => {} },
+          { label: "Insert row above", onClick: data.handleInsertRowAbove, disabled: !sel.active },
+          { label: "Insert row below", onClick: data.handleInsertRowBelow, disabled: !sel.active },
+          { label: "Delete row", onClick: data.handleDeleteRow, disabled: !sel.active },
+          { label: "", divider: true, onClick: () => {} },
+          {
+            label: "Insert comment",
+            onClick: () => {
+              if (sel.active) setCommentCell({ row: sel.active.row, col: sel.active.col });
+            },
+            disabled: !sel.active,
+          },
+          { label: "", divider: true, onClick: () => {} },
+          {
+            label: "Clear contents",
+            shortcut: "Del",
+            onClick: () => {
+              if (!sel.active) return;
+              const ref = cellRef(sel.active.row, sel.active.col);
+              setCellCrdt(ref, "", state.cells[ref]?.style);
+              uiDispatch({ type: "SET_FORMULA_BAR", value: "" });
+            },
+          },
+        ]}
+      />
+
+      {showShortcuts && <KeyboardShortcutsModal onClose={() => setShowShortcuts(false)} />}
+
+      {showAiPanel && (
+        <AiPanel
+          sheetId={state.activeSheetId}
+          onClose={() => setShowAiPanel(false)}
+        />
+      )}
+
+      {commentCell && state.activeSheetId && (
+        <CommentModal
+          sheetId={state.activeSheetId}
+          row={commentCell.row}
+          col={commentCell.col}
+          onClose={() => setCommentCell(null)}
+        />
+      )}
+
+      {showVersionHistory && state.workbookId && state.activeSheetId && (
+        <VersionHistoryModal
+          workbookId={state.workbookId}
+          sheetId={state.activeSheetId}
+          onClose={() => setShowVersionHistory(false)}
+          onRestored={() => loadWorkbook(workbookId, state.activeSheetId)}
+        />
+      )}
+
+      {tools.showFindReplace && (
+        <FindReplaceModal
+          cells={state.cells}
+          onClose={tools.closeFindReplace}
+          onNavigate={tools.handleFindReplaceNavigate}
+          onReplace={tools.handleFindReplaceReplace}
+          onReplaceAll={tools.handleFindReplaceAll}
+        />
+      )}
+
+      {file.shareToast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-gray-900 text-white text-xs font-medium px-4 py-2 rounded-full shadow-lg pointer-events-none">
+          Share link copied to clipboard
+        </div>
+      )}
+
+      {tools.statsToast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-gray-900 text-white text-xs font-medium px-4 py-2 rounded-full shadow-lg pointer-events-none">
+          {tools.statsToast}
+        </div>
+      )}
+    </div>
+  );
+}

@@ -1,0 +1,148 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { aiService } from "@/services/aiService";
+
+interface Message {
+  role: "user" | "assistant";
+  text: string;
+  toolsUsed?: string[];
+}
+
+interface Props {
+  sheetId: string | null;
+  onClose: () => void;
+}
+
+export function AiPanel({ sheetId, onClose }: Props) {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  async function handleSubmit() {
+    const query = input.trim();
+    if (!query || !sheetId || loading) return;
+
+    setMessages((prev) => [...prev, { role: "user", text: query }]);
+    setInput("");
+    setLoading(true);
+
+    try {
+      const result = await aiService.ask(sheetId, query);
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", text: result.answer, toolsUsed: result.toolsUsed },
+      ]);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to get a response.";
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", text: `Error: ${msg}` },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="fixed right-0 top-12 bottom-0 w-80 bg-white border-l border-gray-200 shadow-xl z-40 flex flex-col">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 shrink-0">
+        <div className="flex items-center gap-2">
+          <span className="text-base">✨</span>
+          <span className="text-sm font-semibold text-gray-800">OnSheet AI</span>
+        </div>
+        <button
+          onClick={onClose}
+          className="text-gray-400 hover:text-gray-600 transition-colors text-lg leading-none"
+          aria-label="Close AI panel"
+        >
+          ×
+        </button>
+      </div>
+
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
+        {messages.length === 0 && (
+          <div className="text-xs text-gray-400 text-center mt-8 leading-relaxed">
+            Ask anything about this sheet — formulas, insights, analysis, anomalies.
+          </div>
+        )}
+        {messages.map((m, i) => (
+          <div key={i} className={`flex flex-col gap-0.5 ${m.role === "user" ? "items-end" : "items-start"}`}>
+            <div
+              className={`text-xs px-3 py-2 rounded-xl max-w-[90%] whitespace-pre-wrap leading-relaxed ${
+                m.role === "user"
+                  ? "bg-emerald-600 text-white rounded-br-sm"
+                  : "bg-gray-100 text-gray-800 rounded-bl-sm"
+              }`}
+            >
+              {m.text}
+            </div>
+            {m.toolsUsed && m.toolsUsed.length > 0 && (
+              <div className="text-[10px] text-gray-400 px-1">
+                Used: {m.toolsUsed.join(", ")}
+              </div>
+            )}
+          </div>
+        ))}
+        {loading && (
+          <div className="flex items-start">
+            <div className="bg-gray-100 rounded-xl rounded-bl-sm px-3 py-2">
+              <span className="flex gap-1 items-center">
+                <span className="size-1.5 rounded-full bg-gray-400 animate-bounce [animation-delay:0ms]" />
+                <span className="size-1.5 rounded-full bg-gray-400 animate-bounce [animation-delay:150ms]" />
+                <span className="size-1.5 rounded-full bg-gray-400 animate-bounce [animation-delay:300ms]" />
+              </span>
+            </div>
+          </div>
+        )}
+        <div ref={bottomRef} />
+      </div>
+
+      {/* Input */}
+      <div className="px-3 pb-3 pt-2 border-t border-gray-100 shrink-0">
+        <div className="flex gap-2 items-end">
+          <textarea
+            ref={inputRef}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                handleSubmit();
+              }
+            }}
+            placeholder="Ask about this sheet…"
+            rows={2}
+            disabled={loading || !sheetId}
+            className="flex-1 text-xs text-gray-800 placeholder:text-gray-400 border border-gray-200 rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-emerald-400 disabled:opacity-50"
+          />
+          <button
+            onClick={handleSubmit}
+            disabled={loading || !input.trim() || !sheetId}
+            className="shrink-0 size-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center hover:bg-emerald-700 disabled:opacity-40 transition-colors"
+            aria-label="Send"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+            </svg>
+          </button>
+        </div>
+        <p className="text-[10px] text-gray-400 mt-1.5 text-center">
+          Shift+Enter for new line · Enter to send
+        </p>
+      </div>
+    </div>
+  );
+}
