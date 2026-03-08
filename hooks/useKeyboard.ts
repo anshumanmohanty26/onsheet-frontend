@@ -73,8 +73,13 @@ export function useKeyboard(opts: UseKeyboardOptions) {
         return;
       }
 
-      // Start editing on printable character
+      // Start editing on printable character.
+      // e.preventDefault() is critical: it cancels the subsequent keypress/input
+      // events so the character isn't also inserted into the newly-focused cell
+      // editor input (autoFocus mounts it during the same keydown cycle), which
+      // would otherwise double the character — e.g. typing "2" shows "22".
       if (e.key.length === 1 && !mod && !e.altKey) {
+        e.preventDefault();
         opts.onStartEdit(e.key);
       }
     }
