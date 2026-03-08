@@ -92,6 +92,7 @@ export function ShareButton({ workbookId }: ShareButtonProps) {
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
 
   const [shareToken, setShareToken] = useState<string | null>(null);
   const [publicAccess, setPublicAccess] = useState(false);
@@ -117,6 +118,7 @@ export function ShareButton({ workbookId }: ShareButtonProps) {
   const handleOpen = useCallback(() => {
     setOpen(true);
     setError("");
+    setSuccessMsg("");
     loadPermissions();
     loadShareInfo();
   }, [loadPermissions, loadShareInfo]);
@@ -125,16 +127,28 @@ export function ShareButton({ workbookId }: ShareButtonProps) {
     if (!workbookId || !email.trim()) return;
     setLoading(true);
     setError("");
+    setSuccessMsg("");
     try {
-      await spreadsheetService.share(workbookId, { email: email.trim(), role });
+      const newPerm = await spreadsheetService.share(workbookId, { email: email.trim(), role });
       setEmail("");
-      await loadPermissions();
+      // Add / update person in the list optimistically
+      setPermissions((prev) => {
+        const idx = prev.findIndex((p) => p.userId === newPerm.userId);
+        if (idx >= 0) {
+          const updated = [...prev];
+          updated[idx] = newPerm;
+          return updated;
+        }
+        return [...prev, newPerm];
+      });
+      setSuccessMsg(`${newPerm.name ?? email.trim()} has been given ${newPerm.role} access.`);
+      setTimeout(() => setSuccessMsg(""), 4000);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to share");
     } finally {
       setLoading(false);
     }
-  }, [workbookId, email, role, loadPermissions]);
+  }, [workbookId, email, role]);
 
   const handleRevoke = useCallback(async (userId: string) => {
     if (!workbookId) return;
@@ -260,6 +274,9 @@ export function ShareButton({ workbookId }: ShareButtonProps) {
             {error && (
               <p className="mt-2 text-xs text-red-500 animate-in fade-in duration-150">{error}</p>
             )}
+            {successMsg && (
+              <p className="mt-2 text-xs text-emerald-600 animate-in fade-in duration-150">✓ {successMsg}</p>
+            )}
           </div>
 
           {/* ── People with access ── */}
@@ -281,7 +298,9 @@ export function ShareButton({ workbookId }: ShareButtonProps) {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-[11px] text-gray-400 capitalize">{p.role}</span>
+                    <span className="text-[11px] text-gray-400">
+                      {ROLE_OPTIONS.find((o) => o.value === p.role)?.label ?? p.role}
+                    </span>
                     <button
                       onClick={() => handleRevoke(p.userId)}
                       className="rounded px-1.5 py-0.5 text-[11px] text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors duration-150"

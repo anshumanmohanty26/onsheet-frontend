@@ -4,10 +4,11 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { WorkbookCard } from "@/components/dashboard/WorkbookCard";
+import { SharedWorkbookCard } from "@/components/dashboard/SharedWorkbookCard";
 import { NewWorkbookModal } from "@/components/dashboard/NewWorkbookModal";
 import { ImportModal } from "@/components/dashboard/ImportModal";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
-import { workbookService, type Workbook } from "@/services/workbookService";
+import { workbookService, type Workbook, type SharedWorkbook } from "@/services/workbookService";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { setPendingImport } from "@/lib/import/pendingImport";
 import { cellRef } from "@/lib/utils/coordinates";
@@ -17,6 +18,7 @@ export default function DashboardPage() {
   const { user } = useAuth();
 
   const [workbooks, setWorkbooks] = useState<Workbook[]>([]);
+  const [sharedWorkbooks, setSharedWorkbooks] = useState<SharedWorkbook[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showModal, setShowModal] = useState(false);
@@ -27,8 +29,12 @@ export default function DashboardPage() {
 
   const loadWorkbooks = useCallback(async () => {
     try {
-      const data = await workbookService.list();
-      setWorkbooks(data ?? []);
+      const [owned, shared] = await Promise.all([
+        workbookService.list(),
+        workbookService.sharedWithMe(),
+      ]);
+      setWorkbooks(owned ?? []);
+      setSharedWorkbooks(shared ?? []);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load spreadsheets.");
     } finally {
@@ -90,6 +96,10 @@ export default function DashboardPage() {
   }
 
   const filtered = workbooks.filter((w) =>
+    w.name.toLowerCase().includes(search.toLowerCase()),
+  );
+
+  const filteredShared = sharedWorkbooks.filter((w) =>
     w.name.toLowerCase().includes(search.toLowerCase()),
   );
 
@@ -179,7 +189,7 @@ export default function DashboardPage() {
         </p>
       )}
 
-      {!loading && !error && workbooks.length === 0 && (
+      {!loading && !error && workbooks.length === 0 && sharedWorkbooks.length === 0 && (
         <div className="flex flex-col items-center justify-center py-24 text-center">
           <div className="size-16 rounded-2xl bg-emerald-50 flex items-center justify-center mb-5">
             <svg
@@ -207,12 +217,34 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Grid */}
+      {/* My spreadsheets grid */}
       {!loading && filtered.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           {filtered.map((wb) => (
             <WorkbookCard key={wb.id} workbook={wb} onDelete={handleDelete} />
           ))}
+        </div>
+      )}
+
+      {/* Shared with you section */}
+      {!loading && filteredShared.length > 0 && (
+        <div className="mt-10">
+          <div className="flex items-center gap-2 mb-4">
+            <svg className="size-4 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M23 21v-2a4 4 0 00-3-3.87" />
+              <path d="M16 3.13a4 4 0 010 7.75" />
+            </svg>
+            <h2 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">
+              Shared with you
+            </h2>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            {filteredShared.map((wb) => (
+              <SharedWorkbookCard key={wb.id} workbook={wb} />
+            ))}
+          </div>
         </div>
       )}
     </>

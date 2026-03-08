@@ -9,6 +9,16 @@ export interface Workbook {
   sheets?: Sheet[];
 }
 
+export interface SharedWorkbook extends Workbook {
+  myRole: "viewer" | "editor" | "commenter";
+  owner: {
+    id: string;
+    email: string;
+    displayName: string | null;
+    avatarUrl: string | null;
+  };
+}
+
 export interface Sheet {
   id: string;
   workbookId: string;
@@ -28,6 +38,8 @@ export interface CreateSheetDto {
 
 export const workbookService = {
   list: () => api.get<Workbook[]>("/workbooks"),
+
+  sharedWithMe: () => api.get<SharedWorkbook[]>("/workbooks/shared-with-me"),
 
   get: (id: string) => api.get<Workbook>(`/workbooks/${id}`),
 
