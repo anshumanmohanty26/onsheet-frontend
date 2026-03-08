@@ -34,8 +34,7 @@ export const spreadsheetService = {
     api.delete<void>(`/workbooks/${workbookId}/permissions/${targetUserId}`),
 
   /** Get public share settings for a workbook. */
-  getShareInfo: (workbookId: string) =>
-    api.get<ShareInfo>(`/workbooks/${workbookId}/share-info`),
+  getShareInfo: (workbookId: string) => api.get<ShareInfo>(`/workbooks/${workbookId}/share-info`),
 
   /** Enable or disable public link access for a workbook. */
   setPublicAccess: (workbookId: string, publicAccess: boolean) =>

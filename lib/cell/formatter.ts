@@ -14,19 +14,31 @@ export function formatCellValue(value: string | number, format: NumberFormatId =
       return String(value);
 
     case "number":
-      return new Intl.NumberFormat(DEFAULT_LOCALE, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num);
+      return new Intl.NumberFormat(DEFAULT_LOCALE, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format(num);
 
     case "percent":
-      return new Intl.NumberFormat(DEFAULT_LOCALE, { style: "percent", minimumFractionDigits: 2 }).format(num);
+      return new Intl.NumberFormat(DEFAULT_LOCALE, {
+        style: "percent",
+        minimumFractionDigits: 2,
+      }).format(num);
 
     case "currency_usd":
-      return new Intl.NumberFormat(DEFAULT_LOCALE, { style: "currency", currency: "USD" }).format(num);
+      return new Intl.NumberFormat(DEFAULT_LOCALE, { style: "currency", currency: "USD" }).format(
+        num,
+      );
 
     case "currency_eur":
-      return new Intl.NumberFormat(DEFAULT_LOCALE, { style: "currency", currency: "EUR" }).format(num);
+      return new Intl.NumberFormat(DEFAULT_LOCALE, { style: "currency", currency: "EUR" }).format(
+        num,
+      );
 
     case "currency_gbp":
-      return new Intl.NumberFormat(DEFAULT_LOCALE, { style: "currency", currency: "GBP" }).format(num);
+      return new Intl.NumberFormat(DEFAULT_LOCALE, { style: "currency", currency: "GBP" }).format(
+        num,
+      );
 
     case "currency_inr":
       return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(num);
@@ -35,7 +47,11 @@ export function formatCellValue(value: string | number, format: NumberFormatId =
       return num.toExponential(2).toUpperCase();
 
     case "accounting": {
-      const formatted = new Intl.NumberFormat(DEFAULT_LOCALE, { style: "currency", currency: "USD", currencySign: "accounting" }).format(num);
+      const formatted = new Intl.NumberFormat(DEFAULT_LOCALE, {
+        style: "currency",
+        currency: "USD",
+        currencySign: "accounting",
+      }).format(num);
       return formatted;
     }
 
@@ -59,7 +75,11 @@ function formatDate(d: Date, format: string): string {
     case "date_short":
       return d.toLocaleDateString(DEFAULT_LOCALE);
     case "date_long":
-      return d.toLocaleDateString(DEFAULT_LOCALE, { year: "numeric", month: "long", day: "numeric" });
+      return d.toLocaleDateString(DEFAULT_LOCALE, {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
     case "date_iso":
       return d.toISOString().slice(0, 10);
     case "time":

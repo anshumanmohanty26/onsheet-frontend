@@ -1,4 +1,4 @@
-import type { CellValueType, ParsedCellValue } from "./types";
+import type { ParsedCellValue } from "./types";
 
 /** Parse raw cell input string into a typed value. */
 export function parseCellInput(raw: string): ParsedCellValue {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 
 interface DropdownProps {
   trigger: ReactNode;
@@ -55,6 +55,7 @@ export function DropdownItem({
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
       disabled={disabled}
       className={`w-full text-left px-3 py-1.5 text-xs transition-colors disabled:text-gray-300 ${

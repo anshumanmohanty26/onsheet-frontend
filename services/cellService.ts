@@ -1,5 +1,5 @@
-import { api } from "./api";
 import type { CellStyle } from "@/types/cell";
+import { api } from "./api";
 
 export interface ApiCell {
   id: string;

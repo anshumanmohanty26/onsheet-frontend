@@ -15,9 +15,16 @@ export function FormulaInput({ value, onChange, onCommit, onCancel, onFocus }: F
       onChange={(e) => onChange(e.target.value)}
       onFocus={onFocus}
       onKeyDown={(e) => {
-        if (e.key === "Enter") { e.preventDefault(); onCommit(value); }
-        if (e.key === "Escape") { e.preventDefault(); onCancel(); }
+        if (e.key === "Enter") {
+          e.preventDefault();
+          onCommit(value);
+        }
+        if (e.key === "Escape") {
+          e.preventDefault();
+          onCancel();
+        }
       }}
+      onBlur={() => onCommit(value)}
       spellCheck={false}
       autoComplete="off"
     />

@@ -11,8 +11,7 @@ export interface CellComment {
 }
 
 export const commentService = {
-  list: (sheetId: string) =>
-    api.get<CellComment[]>(`/sheets/${sheetId}/cells/comments`),
+  list: (sheetId: string) => api.get<CellComment[]>(`/sheets/${sheetId}/cells/comments`),
 
   add: (sheetId: string, row: number, col: number, content: string) =>
     api.post<CellComment>(`/sheets/${sheetId}/cells/comments`, { row, col, content }),

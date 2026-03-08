@@ -6,7 +6,14 @@ import type { CellData, CellStyle } from "@/types/cell";
 export type SpreadsheetAction =
   | { type: "SET_LOADING"; loading: boolean }
   | { type: "SET_ERROR"; error: string | null }
-  | { type: "INIT_SHEET"; workbookId: string; workbookName: string; sheets: SheetMeta[]; activeSheetId: string }
+  | {
+      type: "INIT_SHEET";
+      workbookId: string;
+      workbookName: string;
+      myRole: "OWNER" | "EDITOR" | "VIEWER" | "COMMENTER";
+      sheets: SheetMeta[];
+      activeSheetId: string;
+    }
   | { type: "SET_ACTIVE_SHEET"; sheetId: string }
   | { type: "LOAD_CELLS"; cells: ApiCell[] }
   | { type: "SET_CELL"; ref: string; data: CellData }
@@ -37,6 +44,7 @@ export const DEFAULT_ROW_HEIGHT = 25;
 export const initialSpreadsheetState: SpreadsheetState = {
   workbookId: null,
   workbookTitle: "Untitled spreadsheet",
+  myRole: null,
   activeSheetId: null,
   sheets: [],
   cells: {},
@@ -60,6 +68,7 @@ export function spreadsheetReducer(
         ...state,
         workbookId: action.workbookId,
         workbookTitle: action.workbookName,
+        myRole: action.myRole,
         sheets: action.sheets,
         activeSheetId: action.activeSheetId,
         cells: {},
@@ -115,7 +124,10 @@ export function spreadsheetReducer(
       const newCells: SpreadsheetState["cells"] = {};
       for (const [ref, data] of Object.entries(state.cells)) {
         const parsed = parseCellRef(ref);
-        if (!parsed) { newCells[ref] = data; continue; }
+        if (!parsed) {
+          newCells[ref] = data;
+          continue;
+        }
         const newRow = parsed.row >= row ? parsed.row + 1 : parsed.row;
         newCells[cellRef(newRow, parsed.col)] = data;
       }
@@ -131,7 +143,10 @@ export function spreadsheetReducer(
       const newCells: SpreadsheetState["cells"] = {};
       for (const [ref, data] of Object.entries(state.cells)) {
         const parsed = parseCellRef(ref);
-        if (!parsed) { newCells[ref] = data; continue; }
+        if (!parsed) {
+          newCells[ref] = data;
+          continue;
+        }
         const newCol = parsed.col >= col ? parsed.col + 1 : parsed.col;
         newCells[cellRef(parsed.row, newCol)] = data;
       }
@@ -147,7 +162,10 @@ export function spreadsheetReducer(
       const newCells: SpreadsheetState["cells"] = {};
       for (const [ref, data] of Object.entries(state.cells)) {
         const parsed = parseCellRef(ref);
-        if (!parsed) { newCells[ref] = data; continue; }
+        if (!parsed) {
+          newCells[ref] = data;
+          continue;
+        }
         if (parsed.row === row) continue;
         const nr = parsed.row > row ? parsed.row - 1 : parsed.row;
         newCells[cellRef(nr, parsed.col)] = data;
@@ -165,7 +183,10 @@ export function spreadsheetReducer(
       const newCells: SpreadsheetState["cells"] = {};
       for (const [ref, data] of Object.entries(state.cells)) {
         const parsed = parseCellRef(ref);
-        if (!parsed) { newCells[ref] = data; continue; }
+        if (!parsed) {
+          newCells[ref] = data;
+          continue;
+        }
         if (parsed.col === col) continue;
         const nc = parsed.col > col ? parsed.col - 1 : parsed.col;
         newCells[cellRef(parsed.row, nc)] = data;
@@ -181,12 +202,12 @@ export function spreadsheetReducer(
     case "SORT_COLUMN": {
       const { col, ascending } = action;
       // Group all cells by row
-      const rowMap = new Map<number, Record<number, typeof state.cells[string]>>();
+      const rowMap = new Map<number, Record<number, (typeof state.cells)[string]>>();
       for (const [ref, data] of Object.entries(state.cells)) {
         const parsed = parseCellRef(ref);
         if (!parsed) continue;
         if (!rowMap.has(parsed.row)) rowMap.set(parsed.row, {});
-        rowMap.get(parsed.row)![parsed.col] = data;
+        (rowMap.get(parsed.row) as Record<number, (typeof state.cells)[string]>)[parsed.col] = data;
       }
       if (rowMap.size === 0) return state;
       // Build a sorted array of [originalRow, rowCells]
@@ -194,8 +215,9 @@ export function spreadsheetReducer(
       rows.sort(([, aCells], [, bCells]) => {
         const va = String(aCells[col]?.computed ?? aCells[col]?.raw ?? "");
         const vb = String(bCells[col]?.computed ?? bCells[col]?.raw ?? "");
-        const na = parseFloat(va), nb = parseFloat(vb);
-        if (!isNaN(na) && !isNaN(nb)) return ascending ? na - nb : nb - na;
+        const na = Number.parseFloat(va);
+        const nb = Number.parseFloat(vb);
+        if (!Number.isNaN(na) && !Number.isNaN(nb)) return ascending ? na - nb : nb - na;
         return ascending ? va.localeCompare(vb) : vb.localeCompare(va);
       });
       const newCells: SpreadsheetState["cells"] = {};
@@ -211,12 +233,12 @@ export function spreadsheetReducer(
     }
     case "REMOVE_DUPLICATES": {
       const { col } = action;
-      const rowMap = new Map<number, Record<number, typeof state.cells[string]>>();
+      const rowMap = new Map<number, Record<number, (typeof state.cells)[string]>>();
       for (const [ref, data] of Object.entries(state.cells)) {
         const parsed = parseCellRef(ref);
         if (!parsed) continue;
         if (!rowMap.has(parsed.row)) rowMap.set(parsed.row, {});
-        rowMap.get(parsed.row)![parsed.col] = data;
+        (rowMap.get(parsed.row) as Record<number, (typeof state.cells)[string]>)[parsed.col] = data;
       }
       if (rowMap.size === 0) return state;
       const sortedRows = Array.from(rowMap.entries()).sort((a, b) => a[0] - b[0]);
@@ -243,18 +265,12 @@ export function spreadsheetReducer(
 }
 
 /** Return display value of a cell (computed > raw, empty string if missing) */
-export function getCellDisplay(
-  cells: SpreadsheetState["cells"],
-  ref: string,
-): string {
+export function getCellDisplay(cells: SpreadsheetState["cells"], ref: string): string {
   const cell = cells[ref];
   if (!cell) return "";
   return cell.computed ?? cell.raw;
 }
 
-export function getCellStyle(
-  cells: SpreadsheetState["cells"],
-  ref: string,
-): CellStyle | undefined {
+export function getCellStyle(cells: SpreadsheetState["cells"], ref: string): CellStyle | undefined {
   return cells[ref]?.style;
 }

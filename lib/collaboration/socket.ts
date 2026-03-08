@@ -6,7 +6,7 @@
  *
  * The backend runs a Socket.IO gateway at namespace /collab.
  */
-import { io, type Socket as IoSocket } from "socket.io-client";
+import { type Socket as IoSocket, io } from "socket.io-client";
 
 export type MessageHandler = (type: string, payload: unknown) => void;
 

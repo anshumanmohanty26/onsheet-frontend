@@ -1,7 +1,7 @@
-import { useCallback } from "react";
 import { cellRef } from "@/lib/utils/coordinates";
 import type { CellMap, CellStyle } from "@/types/cell";
 import type { CellCoord } from "@/types/selection";
+import { useCallback } from "react";
 
 interface Options {
   active: CellCoord | null;

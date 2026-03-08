@@ -1,6 +1,6 @@
-import { useCallback, useState } from "react";
 import type { CellMap, CellStyle } from "@/types/cell";
 import type { CellCoord } from "@/types/selection";
+import { useCallback, useState } from "react";
 
 interface Options {
   cells: CellMap;

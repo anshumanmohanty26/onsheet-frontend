@@ -1,12 +1,12 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { ApiError } from "@/services/api";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { FormEvent, useState } from "react";
 
 interface FormState {
   name: string;
@@ -26,19 +26,16 @@ interface Errors {
 function validate(form: FormState): Errors {
   const errors: Errors = {};
   if (!form.name.trim()) errors.name = "Name is required.";
-  else if (form.name.trim().length < 2)
-    errors.name = "Name must be at least 2 characters.";
+  else if (form.name.trim().length < 2) errors.name = "Name must be at least 2 characters.";
 
   if (!form.email) errors.email = "Email is required.";
   else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
     errors.email = "Enter a valid email address.";
 
   if (!form.password) errors.password = "Password is required.";
-  else if (form.password.length < 8)
-    errors.password = "Password must be at least 8 characters.";
+  else if (form.password.length < 8) errors.password = "Password must be at least 8 characters.";
 
-  if (!form.confirmPassword)
-    errors.confirmPassword = "Please confirm your password.";
+  if (!form.confirmPassword) errors.confirmPassword = "Please confirm your password.";
   else if (form.password !== form.confirmPassword)
     errors.confirmPassword = "Passwords do not match.";
 
@@ -160,12 +157,7 @@ export default function SignupPage() {
           disabled={loading}
         />
 
-        <Button
-          type="submit"
-          size="lg"
-          loading={loading}
-          className="mt-2 w-full"
-        >
+        <Button type="submit" size="lg" loading={loading} className="mt-2 w-full">
           Create account
         </Button>
       </form>

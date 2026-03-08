@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { SheetTab } from "./SheetTab";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import type { SheetMeta } from "@/types";
+import { useState } from "react";
+import { SheetTab } from "./SheetTab";
 
 interface SheetTabsProps {
   sheets: SheetMeta[];
@@ -11,9 +11,17 @@ interface SheetTabsProps {
   onSelect: (sheetId: string) => void;
   onAddSheet: () => void;
   onDeleteSheet?: (sheetId: string) => Promise<void> | void;
+  canEdit?: boolean;
 }
 
-export function SheetTabs({ sheets, activeSheetId, onSelect, onAddSheet, onDeleteSheet }: SheetTabsProps) {
+export function SheetTabs({
+  sheets,
+  activeSheetId,
+  onSelect,
+  onAddSheet,
+  onDeleteSheet,
+  canEdit = true,
+}: SheetTabsProps) {
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const pendingSheet = sheets.find((s) => s.id === pendingDeleteId);
 
@@ -26,18 +34,21 @@ export function SheetTabs({ sheets, activeSheetId, onSelect, onAddSheet, onDelet
             id={sheet.id}
             title={sheet.name}
             active={sheet.id === activeSheetId}
-            canDelete={sheets.length > 1 && !!onDeleteSheet}
+            canDelete={canEdit && sheets.length > 1 && !!onDeleteSheet}
             onClick={() => onSelect(sheet.id)}
             onDelete={() => setPendingDeleteId(sheet.id)}
           />
         ))}
-        <button
-          onClick={onAddSheet}
-          className="px-4 py-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 text-xl leading-none transition-colors h-full"
-          title="Add sheet"
-        >
-          +
-        </button>
+        {canEdit && (
+          <button
+            type="button"
+            onClick={onAddSheet}
+            className="px-4 py-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 text-xl leading-none transition-colors h-full"
+            title="Add sheet"
+          >
+            +
+          </button>
+        )}
       </div>
 
       <ConfirmModal

@@ -1,13 +1,13 @@
 "use client";
 
-import { memo, useCallback, useRef } from "react";
 import { colIndexToLabel } from "@/lib/utils/coordinates";
+import { memo, useCallback, useRef } from "react";
 
 interface ColumnHeaderProps {
   col: number;
   width: number;
   onResizeStart: (col: number, startX: number, currentWidth: number) => void;
-  onColumnSelect: (col: number) => void;
+  onColumnSelect: (col: number, shiftKey: boolean) => void;
 }
 
 /** Column header cell (A, B, C…) with a resize handle on the right edge. */
@@ -32,7 +32,7 @@ export const ColumnHeader = memo(function ColumnHeader({
     <th
       className="sticky top-0 z-10 bg-gray-100 border border-gray-300 text-xs font-medium text-gray-600 select-none relative"
       style={{ width, minWidth: width }}
-      onClick={() => onColumnSelect(col)}
+      onClick={(e) => onColumnSelect(col, e.shiftKey)}
     >
       {colIndexToLabel(col)}
       <div

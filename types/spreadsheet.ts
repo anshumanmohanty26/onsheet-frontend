@@ -10,6 +10,7 @@ export interface SheetMeta {
 export interface SpreadsheetState {
   workbookId: string | null;
   workbookTitle: string;
+  myRole: "OWNER" | "EDITOR" | "VIEWER" | "COMMENTER" | null;
   activeSheetId: string | null;
   sheets: SheetMeta[];
   cells: CellMap;

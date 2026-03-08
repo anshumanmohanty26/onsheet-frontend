@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { snapshotService, type Snapshot } from "@/services/snapshotService";
+import { type Snapshot, snapshotService } from "@/services/snapshotService";
+import { useCallback, useEffect, useState } from "react";
 
 interface Props {
   workbookId: string;
@@ -102,6 +102,7 @@ export function VersionHistoryModal({ workbookId, sheetId, onClose, onRestored }
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
           <h2 className="text-sm font-semibold text-gray-900">Version history</h2>
           <button
+            type="button"
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 transition-colors text-lg leading-none"
             aria-label="Close"
@@ -119,7 +120,6 @@ export function VersionHistoryModal({ workbookId, sheetId, onClose, onRestored }
               {showNameInput ? (
                 <div className="flex flex-col gap-1.5">
                   <input
-                    autoFocus
                     value={newName}
                     onChange={(e) => setNewName(e.target.value)}
                     onKeyDown={(e) => {
@@ -131,6 +131,7 @@ export function VersionHistoryModal({ workbookId, sheetId, onClose, onRestored }
                   />
                   <div className="flex gap-1.5">
                     <button
+                      type="button"
                       onClick={handleSaveNamed}
                       disabled={saving}
                       className="flex-1 text-xs bg-blue-600 text-white rounded px-2 py-1 hover:bg-blue-700 disabled:opacity-50"
@@ -138,6 +139,7 @@ export function VersionHistoryModal({ workbookId, sheetId, onClose, onRestored }
                       {saving ? "Saving…" : "Save"}
                     </button>
                     <button
+                      type="button"
                       onClick={() => setShowNameInput(false)}
                       className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1"
                     >
@@ -147,6 +149,7 @@ export function VersionHistoryModal({ workbookId, sheetId, onClose, onRestored }
                 </div>
               ) : (
                 <button
+                  type="button"
                   onClick={() => setShowNameInput(true)}
                   className="w-full text-xs text-blue-600 hover:text-blue-700 font-medium text-left"
                 >
@@ -169,6 +172,7 @@ export function VersionHistoryModal({ workbookId, sheetId, onClose, onRestored }
                 {snapshots.map((s) => (
                   <li key={s.id}>
                     <button
+                      type="button"
                       onClick={() => setSelected(s.id)}
                       className={`w-full text-left px-3 py-2.5 border-b border-gray-50 transition-colors ${
                         selected === s.id
@@ -177,7 +181,9 @@ export function VersionHistoryModal({ workbookId, sheetId, onClose, onRestored }
                       }`}
                     >
                       <div className="text-xs font-medium text-gray-800 truncate">{s.name}</div>
-                      <div className="text-[11px] text-gray-400 mt-0.5">{formatDate(s.createdAt)}</div>
+                      <div className="text-[11px] text-gray-400 mt-0.5">
+                        {formatDate(s.createdAt)}
+                      </div>
                       <div className="text-[11px] text-gray-400 truncate">{s.user.displayName}</div>
                     </button>
                   </li>
@@ -190,7 +196,9 @@ export function VersionHistoryModal({ workbookId, sheetId, onClose, onRestored }
           <div className="flex-1 flex flex-col overflow-hidden">
             {selectedSnapshot ? (
               <div className="flex-1 p-5 overflow-y-auto">
-                <div className="text-sm font-semibold text-gray-800 mb-1">{selectedSnapshot.name}</div>
+                <div className="text-sm font-semibold text-gray-800 mb-1">
+                  {selectedSnapshot.name}
+                </div>
                 <div className="text-xs text-gray-500 mb-0.5">
                   {formatDate(selectedSnapshot.createdAt)}
                 </div>
@@ -213,12 +221,14 @@ export function VersionHistoryModal({ workbookId, sheetId, onClose, onRestored }
               {!error && <span />}
               <div className="flex gap-2">
                 <button
+                  type="button"
                   onClick={onClose}
                   className="text-xs px-3 py-1.5 text-gray-600 hover:text-gray-800 border border-gray-200 rounded hover:bg-gray-50 transition-colors"
                 >
                   Close
                 </button>
                 <button
+                  type="button"
                   onClick={handleRestore}
                   disabled={!selected || restoring}
                   className="text-xs px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 transition-colors"

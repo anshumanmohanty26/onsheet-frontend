@@ -18,9 +18,7 @@ export function Stats() {
         <dl className="grid grid-cols-2 gap-8 lg:grid-cols-4">
           {stats.map((stat) => (
             <div key={stat.label} className="text-center">
-              <dd className="text-4xl font-semibold text-gray-900 mb-1">
-                {stat.value}
-              </dd>
+              <dd className="text-4xl font-semibold text-gray-900 mb-1">{stat.value}</dd>
               <dt className="text-sm text-gray-500">{stat.label}</dt>
             </div>
           ))}

@@ -29,6 +29,6 @@ export function parseCellRef(ref: string): { row: number; col: number } | null {
   if (!match) return null;
   return {
     col: colLabelToIndex(match[1].toUpperCase()),
-    row: parseInt(match[2], 10) - 1,
+    row: Number.parseInt(match[2], 10) - 1,
   };
 }

@@ -29,7 +29,9 @@ export const MAX: FormulaFn = (args) => {
 };
 
 export const COUNT: FormulaFn = (args) =>
-  args.filter((v) => typeof v === "number" || (typeof v === "string" && !Number.isNaN(Number(v)) && v !== "")).length;
+  args.filter(
+    (v) => typeof v === "number" || (typeof v === "string" && !Number.isNaN(Number(v)) && v !== ""),
+  ).length;
 
 export const COUNTA: FormulaFn = (args) =>
   args.filter((v) => v !== "" && v !== undefined && v !== null).length;

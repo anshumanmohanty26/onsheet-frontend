@@ -1,8 +1,8 @@
 "use client";
 
+import { useAuth } from "@/lib/auth/AuthContext";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/lib/auth/AuthContext";
 
 export function DashboardNav() {
   const { user, logout } = useAuth();
@@ -28,6 +28,7 @@ export function DashboardNav() {
 
         {/* Avatar */}
         <button
+          type="button"
           onClick={() => router.push("/settings")}
           className="size-8 rounded-full bg-emerald-100 text-emerald-700 text-sm font-semibold flex items-center justify-center uppercase hover:bg-emerald-200 transition-colors"
           aria-label="Settings"
@@ -36,6 +37,7 @@ export function DashboardNav() {
         </button>
 
         <button
+          type="button"
           onClick={logout}
           className="text-sm text-gray-500 hover:text-red-500 transition-colors"
         >

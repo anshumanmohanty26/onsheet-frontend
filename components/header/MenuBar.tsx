@@ -81,7 +81,9 @@ function Dropdown({ items, onClose }: { items: DropdownItem[]; onClose: () => vo
   }, [onClose]);
 
   useEffect(() => {
-    const h = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    const h = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
     document.addEventListener("keydown", h);
     return () => document.removeEventListener("keydown", h);
   }, [onClose]);
@@ -98,9 +100,13 @@ function Dropdown({ items, onClose }: { items: DropdownItem[]; onClose: () => vo
         ) : (
           <button
             key={i}
+            type="button"
             role="menuitem"
             disabled={item.disabled}
-            onClick={() => { item.onClick?.(); onClose(); }}
+            onClick={() => {
+              item.onClick?.();
+              onClose();
+            }}
             className="w-full flex items-center justify-between px-3 py-1.5 text-xs text-left text-gray-700 hover:bg-gray-100 disabled:text-gray-300 disabled:pointer-events-none transition-colors"
           >
             <span className="flex items-center gap-2">
@@ -116,19 +122,52 @@ function Dropdown({ items, onClose }: { items: DropdownItem[]; onClose: () => vo
 }
 
 export function MenuBar({
-  onUndo, onRedo, onCut, onCopy, onPaste,
-  onImport, onExport, onShare, onVersionHistory,
-  onInsertRowAbove, onInsertRowBelow, onInsertColLeft, onInsertColRight, onInsertComment,
-  showGridlines = true, onToggleGridlines,
-  showFormulaBar = true, onToggleFormulaBar,
-  showHeaders = true, onToggleHeaders,
-  zoom = 100, onZoomIn, onZoomOut, onZoomReset,
-  frozenRows = 0, onFreezeFirstRow, onUnfreeze,
-  onBold, onItalic, onUnderline, onStrikethrough,
-  onAlignLeft, onAlignCenter, onAlignRight, onWrapText, wrapText = false,
-  onClearFormatting, onFormatNumber,
-  onSortAsc, onSortDesc, onDeleteRow, onDeleteCol, onRemoveDuplicates, onTrimWhitespace,
-  onFindReplace, onCellStats,
+  onUndo,
+  onRedo,
+  onCut,
+  onCopy,
+  onPaste,
+  onImport,
+  onExport,
+  onShare,
+  onVersionHistory,
+  onInsertRowAbove,
+  onInsertRowBelow,
+  onInsertColLeft,
+  onInsertColRight,
+  onInsertComment,
+  showGridlines = true,
+  onToggleGridlines,
+  showFormulaBar = true,
+  onToggleFormulaBar,
+  showHeaders = true,
+  onToggleHeaders,
+  zoom = 100,
+  onZoomIn,
+  onZoomOut,
+  onZoomReset,
+  frozenRows = 0,
+  onFreezeFirstRow,
+  onUnfreeze,
+  onBold,
+  onItalic,
+  onUnderline,
+  onStrikethrough,
+  onAlignLeft,
+  onAlignCenter,
+  onAlignRight,
+  onWrapText,
+  wrapText = false,
+  onClearFormatting,
+  onFormatNumber,
+  onSortAsc,
+  onSortDesc,
+  onDeleteRow,
+  onDeleteCol,
+  onRemoveDuplicates,
+  onTrimWhitespace,
+  onFindReplace,
+  onCellStats,
   onShowShortcuts,
 }: MenuBarProps) {
   const [open, setOpen] = useState<string | null>(null);
@@ -140,20 +179,37 @@ export function MenuBar({
     {
       label: "File",
       items: [
-        { label: "New spreadsheet", shortcut: "⌘N", onClick: () => window.open("/dashboard", "_blank") },
+        {
+          label: "New spreadsheet",
+          shortcut: "⌘N",
+          onClick: () => window.open("/dashboard", "_blank"),
+        },
         { label: "", divider: true },
         { label: "Import spreadsheet", onClick: onImport, disabled: !onImport },
         { label: "", divider: true },
         { label: "Download as CSV (.csv)", onClick: () => onExport?.("csv"), disabled: !onExport },
-        { label: "Download as Excel (.xlsx)", onClick: () => onExport?.("xlsx"), disabled: !onExport },
+        {
+          label: "Download as Excel (.xlsx)",
+          onClick: () => onExport?.("xlsx"),
+          disabled: !onExport,
+        },
         { label: "Download as PDF (.pdf)", onClick: () => onExport?.("pdf"), disabled: !onExport },
         { label: "Download as ODS (.ods)", onClick: () => onExport?.("ods"), disabled: !onExport },
         { label: "Download as TSV (.tsv)", onClick: () => onExport?.("tsv"), disabled: !onExport },
-        { label: "Download as JSON (.json)", onClick: () => onExport?.("json"), disabled: !onExport },
+        {
+          label: "Download as JSON (.json)",
+          onClick: () => onExport?.("json"),
+          disabled: !onExport,
+        },
         { label: "", divider: true },
         { label: "Copy share link", shortcut: "⌘⇧S", onClick: onShare, disabled: !onShare },
         { label: "", divider: true },
-        { label: "Version history", shortcut: "⌘⌥H", onClick: onVersionHistory, disabled: !onVersionHistory },
+        {
+          label: "Version history",
+          shortcut: "⌘⌥H",
+          onClick: onVersionHistory,
+          disabled: !onVersionHistory,
+        },
         { label: "", divider: true },
         { label: "Print", shortcut: "⌘P", onClick: () => window.print() },
       ],
@@ -168,7 +224,12 @@ export function MenuBar({
         { label: "Copy", shortcut: "⌘C", onClick: onCopy },
         { label: "Paste", shortcut: "⌘V", onClick: onPaste },
         { label: "", divider: true },
-        { label: "Find & replace", shortcut: "⌘H", onClick: onFindReplace, disabled: !onFindReplace },
+        {
+          label: "Find & replace",
+          shortcut: "⌘H",
+          onClick: onFindReplace,
+          disabled: !onFindReplace,
+        },
       ],
     },
     {
@@ -184,8 +245,18 @@ export function MenuBar({
           disabled: !onFreezeFirstRow && !onUnfreeze,
         },
         { label: "", divider: true },
-        { label: `Zoom in  (${Math.min(200, zoom + 10)}%)`, shortcut: "⌘+", onClick: onZoomIn, disabled: zoom >= 200 },
-        { label: `Zoom out (${Math.max(50, zoom - 10)}%)`, shortcut: "⌘-", onClick: onZoomOut, disabled: zoom <= 50 },
+        {
+          label: `Zoom in  (${Math.min(200, zoom + 10)}%)`,
+          shortcut: "⌘+",
+          onClick: onZoomIn,
+          disabled: zoom >= 200,
+        },
+        {
+          label: `Zoom out (${Math.max(50, zoom - 10)}%)`,
+          shortcut: "⌘-",
+          onClick: onZoomOut,
+          disabled: zoom <= 50,
+        },
         { label: "Reset zoom (100%)", onClick: onZoomReset, disabled: zoom === 100 },
       ],
     },
@@ -198,7 +269,12 @@ export function MenuBar({
         { label: "Insert column left", onClick: onInsertColLeft, disabled: !onInsertColLeft },
         { label: "Insert column right", onClick: onInsertColRight, disabled: !onInsertColRight },
         { label: "", divider: true },
-        { label: "Insert comment", shortcut: "⌘⇧M", onClick: onInsertComment, disabled: !onInsertComment },
+        {
+          label: "Insert comment",
+          shortcut: "⌘⇧M",
+          onClick: onInsertComment,
+          disabled: !onInsertComment,
+        },
       ],
     },
     {
@@ -236,13 +312,22 @@ export function MenuBar({
         { label: "Delete row", onClick: onDeleteRow, disabled: !onDeleteRow },
         { label: "Delete column", onClick: onDeleteCol, disabled: !onDeleteCol },
         { label: "", divider: true },
-        { label: "Remove duplicates in column", onClick: onRemoveDuplicates, disabled: !onRemoveDuplicates },
+        {
+          label: "Remove duplicates in column",
+          onClick: onRemoveDuplicates,
+          disabled: !onRemoveDuplicates,
+        },
       ],
     },
     {
       label: "Tools",
       items: [
-        { label: "Find & replace", shortcut: "⌘H", onClick: onFindReplace, disabled: !onFindReplace },
+        {
+          label: "Find & replace",
+          shortcut: "⌘H",
+          onClick: onFindReplace,
+          disabled: !onFindReplace,
+        },
         { label: "", divider: true },
         { label: "Cell statistics", onClick: onCellStats, disabled: !onCellStats },
       ],
@@ -250,7 +335,12 @@ export function MenuBar({
     {
       label: "Help",
       items: [
-        { label: "Keyboard shortcuts", shortcut: "⌘/", onClick: onShowShortcuts, disabled: !onShowShortcuts },
+        {
+          label: "Keyboard shortcuts",
+          shortcut: "⌘/",
+          onClick: onShowShortcuts,
+          disabled: !onShowShortcuts,
+        },
         { label: "", divider: true },
         { label: "About OnSheet", onClick: () => window.open("https://github.com", "_blank") },
       ],
@@ -262,6 +352,7 @@ export function MenuBar({
       {menus.map(({ label, items }) => (
         <div key={label} className="relative">
           <button
+            type="button"
             className={`px-2.5 py-0.5 text-xs rounded transition-colors ${
               open === label ? "bg-gray-100 text-gray-900" : "text-gray-600 hover:bg-gray-100"
             }`}
@@ -275,5 +366,3 @@ export function MenuBar({
     </div>
   );
 }
-
-

@@ -28,15 +28,24 @@ export function CellEditor({ value, onChange, onCommit, onCancel }: CellEditorPr
       value={value}
       onChange={(e) => onChange(e.target.value)}
       onKeyDown={(e) => {
-        if (e.key === "Enter") {
+        if (e.key === "Enter" && !e.shiftKey) {
           e.preventDefault();
           onCommit(value, { dr: 1, dc: 0 });
+        } else if (e.key === "Enter" && e.shiftKey) {
+          e.preventDefault();
+          onCommit(value, { dr: -1, dc: 0 });
         } else if (e.key === "Tab") {
           e.preventDefault();
           onCommit(value, { dr: 0, dc: e.shiftKey ? -1 : 1 });
         } else if (e.key === "Escape") {
           e.preventDefault();
           onCancel();
+        } else if (e.key === "ArrowUp") {
+          e.preventDefault();
+          onCommit(value, { dr: -1, dc: 0 });
+        } else if (e.key === "ArrowDown") {
+          e.preventDefault();
+          onCommit(value, { dr: 1, dc: 0 });
         }
       }}
       onBlur={() => onCommit(value)}

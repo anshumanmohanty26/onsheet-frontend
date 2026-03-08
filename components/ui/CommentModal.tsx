@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { commentService, type CellComment } from "@/services/commentService";
 import { cellRef as makeCellRef } from "@/lib/utils/coordinates";
+import { type CellComment, commentService } from "@/services/commentService";
+import { useEffect, useRef, useState } from "react";
 
 interface Props {
   sheetId: string;
@@ -87,6 +87,7 @@ export function CommentModal({ sheetId, row, col, onClose }: Props) {
             Comments — <span className="font-normal text-gray-500">{cellLabel}</span>
           </h2>
           <button
+            type="button"
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 transition-colors text-lg leading-none"
             aria-label="Close"
@@ -100,9 +101,7 @@ export function CommentModal({ sheetId, row, col, onClose }: Props) {
           {loading ? (
             <p className="text-xs text-gray-400 text-center py-4">Loading…</p>
           ) : comments.length === 0 ? (
-            <p className="text-xs text-gray-400 text-center py-6">
-              No comments yet. Be the first!
-            </p>
+            <p className="text-xs text-gray-400 text-center py-6">No comments yet. Be the first!</p>
           ) : (
             comments.map((c) => (
               <div key={c.id} className="group flex gap-3">
@@ -114,6 +113,7 @@ export function CommentModal({ sheetId, row, col, onClose }: Props) {
                     <span className="text-xs font-medium text-gray-800">{c.user.displayName}</span>
                     <span className="text-[10px] text-gray-400">{formatDate(c.createdAt)}</span>
                     <button
+                      type="button"
                       onClick={() => handleDelete(c.id)}
                       className="ml-auto text-[10px] text-gray-300 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
                     >
@@ -146,6 +146,7 @@ export function CommentModal({ sheetId, row, col, onClose }: Props) {
           />
           <div className="flex justify-end">
             <button
+              type="button"
               onClick={handleAdd}
               disabled={!input.trim() || saving}
               className="text-xs px-3 py-1.5 bg-emerald-600 text-white rounded hover:bg-emerald-700 disabled:opacity-50 transition-colors"

@@ -1,9 +1,10 @@
 "use client";
 
+import { useAuth } from "@/lib/auth/AuthContext";
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { ShareButton } from "./ShareButton";
-import { useAuth } from "@/lib/auth/AuthContext";
 
 interface HeaderProps {
   title: string;
@@ -14,7 +15,7 @@ interface HeaderProps {
 }
 
 export function Header({ title, workbookId, onRename, onAiToggle, aiOpen }: HeaderProps) {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(title);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -33,10 +34,11 @@ export function Header({ title, workbookId, onRename, onAiToggle, aiOpen }: Head
       {/* Logo */}
       <Link
         href="/dashboard"
-        className="text-lg font-bold text-emerald-600 tracking-tight shrink-0"
+        className="flex items-center gap-1.5 shrink-0"
         title="Back to dashboard"
       >
-        T
+        <Image src="/onsheet.svg" alt="OnSheet" width={22} height={22} className="rounded" />
+        <span className="text-sm font-bold text-emerald-600 tracking-tight">OnSheet</span>
       </Link>
 
       {/* Editable title */}
@@ -49,14 +51,20 @@ export function Header({ title, workbookId, onRename, onAiToggle, aiOpen }: Head
           onBlur={commitRename}
           onKeyDown={(e) => {
             if (e.key === "Enter") commitRename();
-            if (e.key === "Escape") { setDraft(title); setEditing(false); }
+            if (e.key === "Escape") {
+              setDraft(title);
+              setEditing(false);
+            }
           }}
-          autoFocus
         />
       ) : (
         <button
+          type="button"
           className="text-sm font-medium text-gray-800 hover:bg-gray-100 rounded px-2 py-0.5 max-w-[260px] truncate"
-          onClick={() => { setEditing(true); setTimeout(() => inputRef.current?.select(), 10); }}
+          onClick={() => {
+            setEditing(true);
+            setTimeout(() => inputRef.current?.select(), 10);
+          }}
           title="Click to rename"
         >
           {title}
@@ -70,6 +78,7 @@ export function Header({ title, workbookId, onRename, onAiToggle, aiOpen }: Head
       {/* AI Agent button */}
       {onAiToggle && (
         <button
+          type="button"
           onClick={onAiToggle}
           title="OnSheet AI — ask anything about this sheet"
           className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full transition-colors ${
@@ -83,14 +92,14 @@ export function Header({ title, workbookId, onRename, onAiToggle, aiOpen }: Head
         </button>
       )}
 
-      {/* User avatar */}
-      <button
-        onClick={logout}
-        title={`Sign out (${user?.email})`}
+      {/* User avatar → profile settings */}
+      <Link
+        href="/settings"
+        title={`Profile settings (${user?.email})`}
         className="size-7 rounded-full bg-emerald-100 text-emerald-700 text-xs font-semibold flex items-center justify-center uppercase hover:bg-emerald-200 transition-colors"
       >
         {user?.displayName?.[0] ?? "?"}
-      </button>
+      </Link>
     </header>
   );
 }

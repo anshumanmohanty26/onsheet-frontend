@@ -1,17 +1,21 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { spreadsheetService, type Permission, type PermissionRole } from "@/services/spreadsheetService";
+import { Modal } from "@/components/ui/Modal";
+import {
+  type Permission,
+  type PermissionRole,
+  spreadsheetService,
+} from "@/services/spreadsheetService";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 // ── Custom role picker ────────────────────────────────────────────────────────
 
 const ROLE_OPTIONS: { value: PermissionRole; label: string; desc: string }[] = [
-  { value: "viewer",    label: "Viewer",    desc: "Can read only" },
+  { value: "viewer", label: "Viewer", desc: "Can read only" },
   { value: "commenter", label: "Commenter", desc: "Can read & comment" },
-  { value: "editor",   label: "Editor",    desc: "Can edit" },
+  { value: "editor", label: "Editor", desc: "Can edit" },
 ];
 
 function RoleSelect({
@@ -33,7 +37,7 @@ function RoleSelect({
     return () => document.removeEventListener("mousedown", handler);
   }, [open]);
 
-  const selected = ROLE_OPTIONS.find((o) => o.value === value)!;
+  const selected = ROLE_OPTIONS.find((o) => o.value === value) ?? ROLE_OPTIONS[0];
 
   return (
     <div ref={ref} className="relative">
@@ -45,7 +49,10 @@ function RoleSelect({
         {selected.label}
         <svg
           className={`size-3.5 text-gray-400 transition-transform duration-150 ${open ? "rotate-180" : ""}`}
-          viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
         >
           <path d="M6 9l6 6 6-6" />
         </svg>
@@ -57,15 +64,26 @@ function RoleSelect({
             <button
               key={opt.value}
               type="button"
-              onClick={() => { onChange(opt.value); setOpen(false); }}
+              onClick={() => {
+                onChange(opt.value);
+                setOpen(false);
+              }}
               className={`flex w-full flex-col items-start px-3 py-2.5 text-left transition-colors first:rounded-t-xl last:rounded-b-xl hover:bg-gray-50 ${
                 opt.value === value ? "bg-emerald-50" : ""
               }`}
             >
-              <span className={`text-xs font-medium ${opt.value === value ? "text-emerald-700" : "text-gray-800"}`}>
+              <span
+                className={`text-xs font-medium ${opt.value === value ? "text-emerald-700" : "text-gray-800"}`}
+              >
                 {opt.label}
                 {opt.value === value && (
-                  <svg className="ml-1.5 inline size-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                  <svg
+                    className="ml-1.5 inline size-3"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="3"
+                  >
                     <path d="M20 6L9 17l-5-5" />
                   </svg>
                 )}
@@ -103,7 +121,9 @@ export function ShareButton({ workbookId }: ShareButtonProps) {
     if (!workbookId) return;
     try {
       setPermissions(await spreadsheetService.listPermissions(workbookId));
-    } catch { /* silently ignore */ }
+    } catch {
+      /* silently ignore */
+    }
   }, [workbookId]);
 
   const loadShareInfo = useCallback(async () => {
@@ -112,7 +132,9 @@ export function ShareButton({ workbookId }: ShareButtonProps) {
       const info = await spreadsheetService.getShareInfo(workbookId);
       setShareToken(info.shareToken);
       setPublicAccess(info.publicAccess);
-    } catch { /* silently ignore */ }
+    } catch {
+      /* silently ignore */
+    }
   }, [workbookId]);
 
   const handleOpen = useCallback(() => {
@@ -150,13 +172,18 @@ export function ShareButton({ workbookId }: ShareButtonProps) {
     }
   }, [workbookId, email, role]);
 
-  const handleRevoke = useCallback(async (userId: string) => {
-    if (!workbookId) return;
-    try {
-      await spreadsheetService.revokeAccess(workbookId, userId);
-      setPermissions((p) => p.filter((x) => x.userId !== userId));
-    } catch { /* silently ignore */ }
-  }, [workbookId]);
+  const handleRevoke = useCallback(
+    async (userId: string) => {
+      if (!workbookId) return;
+      try {
+        await spreadsheetService.revokeAccess(workbookId, userId);
+        setPermissions((p) => p.filter((x) => x.userId !== userId));
+      } catch {
+        /* silently ignore */
+      }
+    },
+    [workbookId],
+  );
 
   const handlePublicToggle = useCallback(async () => {
     if (!workbookId) return;
@@ -188,10 +215,17 @@ export function ShareButton({ workbookId }: ShareButtonProps) {
   return (
     <>
       <button
+        type="button"
         className="flex items-center gap-1.5 rounded-full bg-emerald-500 text-white text-xs font-semibold px-3 py-1.5 hover:bg-emerald-600 active:scale-95 transition-all duration-150"
         onClick={handleOpen}
       >
-        <svg className="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+        <svg
+          className="size-3.5"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+        >
           <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8" />
           <polyline points="16 6 12 2 8 6" />
           <line x1="12" y1="2" x2="12" y2="15" />
@@ -201,13 +235,18 @@ export function ShareButton({ workbookId }: ShareButtonProps) {
 
       <Modal open={open} onClose={() => setOpen(false)} title="Share spreadsheet">
         <div className="flex flex-col gap-5">
-
           {/* ── Anyone with the link ── */}
           <div className="rounded-xl border border-gray-100 bg-gray-50 p-4 flex flex-col gap-3">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2.5">
                 <div className="flex size-8 items-center justify-center rounded-full bg-white border border-gray-200 shadow-sm">
-                  <svg className="size-4 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+                  <svg
+                    className="size-4 text-gray-500"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.75"
+                  >
                     <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
                     <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
                   </svg>
@@ -219,6 +258,7 @@ export function ShareButton({ workbookId }: ShareButtonProps) {
               </div>
               {/* Toggle */}
               <button
+                type="button"
                 disabled={publicToggling}
                 onClick={handlePublicToggle}
                 className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-200 focus:outline-none ${
@@ -241,6 +281,7 @@ export function ShareButton({ workbookId }: ShareButtonProps) {
                   className="flex-1 rounded-lg border border-gray-200 bg-white px-2.5 py-2 text-[11px] text-gray-500 font-mono truncate focus:outline-none"
                 />
                 <button
+                  type="button"
                   onClick={handleCopy}
                   className={`shrink-0 rounded-lg border px-3 py-2 text-xs font-medium transition-all duration-150 ${
                     copied
@@ -256,14 +297,18 @@ export function ShareButton({ workbookId }: ShareButtonProps) {
 
           {/* ── Invite by email ── */}
           <div>
-            <p className="mb-2 text-[11px] font-medium uppercase tracking-wide text-gray-400">Invite people</p>
+            <p className="mb-2 text-[11px] font-medium uppercase tracking-wide text-gray-400">
+              Invite people
+            </p>
             <div className="flex gap-2">
               <div className="flex-1">
                 <Input
                   placeholder="Email address"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") handleShare(); }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleShare();
+                  }}
                 />
               </div>
               <RoleSelect value={role} onChange={setRole} />
@@ -275,14 +320,18 @@ export function ShareButton({ workbookId }: ShareButtonProps) {
               <p className="mt-2 text-xs text-red-500 animate-in fade-in duration-150">{error}</p>
             )}
             {successMsg && (
-              <p className="mt-2 text-xs text-emerald-600 animate-in fade-in duration-150">✓ {successMsg}</p>
+              <p className="mt-2 text-xs text-emerald-600 animate-in fade-in duration-150">
+                ✓ {successMsg}
+              </p>
             )}
           </div>
 
           {/* ── People with access ── */}
           {permissions.length > 0 && (
             <div className="flex flex-col gap-1">
-              <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-gray-400">People with access</p>
+              <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-gray-400">
+                People with access
+              </p>
               {permissions.map((p) => (
                 <div
                   key={p.userId}
@@ -302,6 +351,7 @@ export function ShareButton({ workbookId }: ShareButtonProps) {
                       {ROLE_OPTIONS.find((o) => o.value === p.role)?.label ?? p.role}
                     </span>
                     <button
+                      type="button"
                       onClick={() => handleRevoke(p.userId)}
                       className="rounded px-1.5 py-0.5 text-[11px] text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors duration-150"
                     >

@@ -16,35 +16,35 @@
  *                     cell:updated  cell:confirmed  cell:conflict  collab:error
  */
 
-import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
+import { env } from "@/config/env";
 import { CrdtDoc, type CrdtEntry } from "@/lib/collaboration/crdt";
 import { PresenceTracker } from "@/lib/collaboration/presence";
 import { SocketManager } from "@/lib/collaboration/socket";
-import { HistoryManager, type CellOperation } from "@/lib/history/history";
-import {
-  generatePeerId,
-  initialCollabState,
-  collabReducer,
-} from "@/store/collaborationStore";
-import {
-  initialHistoryState,
-  historyReducer,
-} from "@/store/historyStore";
+import { type CellOperation, HistoryManager } from "@/lib/history/history";
+import { cellRef, parseCellRef } from "@/lib/utils/coordinates";
+import { collabReducer, generatePeerId, initialCollabState } from "@/store/collaborationStore";
+import { historyReducer, initialHistoryState } from "@/store/historyStore";
 import type { SpreadsheetAction } from "@/store/spreadsheetStore";
 import type { CellStyle } from "@/types/cell";
 import type { CollabUser } from "@/types/collaboration";
-import { env } from "@/config/env";
-import { cellRef, parseCellRef } from "@/lib/utils/coordinates";
+import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
 
 interface UseCollaborationOptions {
   sheetId: string | null;
+  workbookId: string | null;
   /** Dispatch into the spreadsheet reducer to update rendered cells */
   spreadsheetDispatch: React.Dispatch<SpreadsheetAction>;
 }
 
 const COLORS = [
-  "#10b981", "#3b82f6", "#f59e0b", "#ef4444",
-  "#8b5cf6", "#ec4899", "#14b8a6", "#f97316",
+  "#10b981",
+  "#3b82f6",
+  "#f59e0b",
+  "#ef4444",
+  "#8b5cf6",
+  "#ec4899",
+  "#14b8a6",
+  "#f97316",
 ];
 
 function pickColor(id: string | undefined | null): string {
@@ -61,6 +61,7 @@ function getServerUrl(): string {
 
 export function useCollaboration({
   sheetId,
+  workbookId,
   spreadsheetDispatch,
 }: UseCollaborationOptions) {
   const peerId = useMemo(generatePeerId, []);
@@ -87,7 +88,7 @@ export function useCollaboration({
 
     // Emit sheet:join on every connect / reconnect
     const unsubConnect = socket.onConnect(() => {
-      socket.send("sheet:join", { sheetId });
+      socket.send("sheet:join", { sheetId, workbookId });
       collabDispatch({ type: "SET_CONNECTED", connected: true });
     });
 
@@ -148,13 +149,17 @@ export function useCollaboration({
           const raw = update.cell.rawValue ?? "";
 
           // Merge into the CRDT doc so undo/redo stays consistent with remote state.
-          // Server version is authoritative — use it as the Lamport timestamp so
-          // these confirmed writes always beat any in-flight local edits.
+          // Use localClock+1 as the timestamp so this server-confirmed entry
+          // ALWAYS wins the LWW comparison against any speculative local edits,
+          // regardless of the server's DB version number (a different clock space).
+          // mergeClocks() then advances the local clock above this value so future
+          // local edits can still beat subsequent remote updates as expected.
+          const serverTs = doc.currentClock + 1;
           doc.merge({
             ref,
             raw,
             style: update.cell.style,
-            timestamp: update.cell.version ?? doc.currentClock + 1,
+            timestamp: serverTs,
             peerId: update.userId ?? "__server__",
           });
 
@@ -192,6 +197,21 @@ export function useCollaboration({
         case "cell:confirmed":
           break;
 
+        case "sheet:created": {
+          // Another collaborator added a new sheet tab
+          const { sheet } = payload as {
+            sheet: { id: string; name: string; index: number; workbookId: string };
+          };
+          spreadsheetDispatch({ type: "ADD_SHEET", sheet });
+          break;
+        }
+
+        case "sheet:deleted": {
+          const { sheetId: deletedId } = payload as { sheetId: string };
+          spreadsheetDispatch({ type: "REMOVE_SHEET", sheetId: deletedId });
+          break;
+        }
+
         case "exception":
           break;
 
@@ -214,7 +234,7 @@ export function useCollaboration({
       collabDispatch({ type: "SET_USERS", users: [] });
       presence.clear();
     };
-  }, [sheetId, peerId, spreadsheetDispatch, presence]);
+  }, [sheetId, workbookId, peerId, spreadsheetDispatch, presence]);
 
   /** Apply a local cell edit through the CRDT pipeline */
   const setCellCrdt = useCallback(
@@ -279,7 +299,12 @@ export function useCollaboration({
       if (parsed && sheetIdRef.current) {
         socketRef.current?.send("cell:update", {
           sheetId: sheetIdRef.current,
-          cell: { row: parsed.row, col: parsed.col, rawValue: op.oldRaw, style: op.oldStyle ?? entry.style },
+          cell: {
+            row: parsed.row,
+            col: parsed.col,
+            rawValue: op.oldRaw,
+            style: op.oldStyle ?? entry.style,
+          },
         });
       }
     }
@@ -302,7 +327,12 @@ export function useCollaboration({
       if (parsed && sheetIdRef.current) {
         socketRef.current?.send("cell:update", {
           sheetId: sheetIdRef.current,
-          cell: { row: parsed.row, col: parsed.col, rawValue: op.newRaw, style: op.newStyle ?? entry.style },
+          cell: {
+            row: parsed.row,
+            col: parsed.col,
+            rawValue: op.newRaw,
+            style: op.newStyle ?? entry.style,
+          },
         });
       }
     }
@@ -311,14 +341,11 @@ export function useCollaboration({
   }, [doc, history, spreadsheetDispatch]);
 
   /** Broadcast local cursor position to peers */
-  const broadcastCursor = useCallback(
-    (activeCellRef: string) => {
-      const parsed = parseCellRef(activeCellRef);
-      if (!parsed) return;
-      socketRef.current?.send("cursor:move", { row: parsed.row, col: parsed.col });
-    },
-    [],
-  );
+  const broadcastCursor = useCallback((activeCellRef: string) => {
+    const parsed = parseCellRef(activeCellRef);
+    if (!parsed) return;
+    socketRef.current?.send("cursor:move", { row: parsed.row, col: parsed.col });
+  }, []);
 
   /** Load initial cells into the CRDT doc */
   const loadIntoCrdt = useCallback(

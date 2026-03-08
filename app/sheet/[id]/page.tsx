@@ -2,43 +2,40 @@
 
 import { use, useCallback, useEffect, useReducer, useRef, useState } from "react";
 
-import { Header } from "@/components/header/Header";
-import { MenuBar } from "@/components/header/MenuBar";
-import { Toolbar } from "@/components/toolbar/Toolbar";
 import { FormulaBar } from "@/components/formulabar/FormulaBar";
 import { Grid } from "@/components/grid/Grid";
-import { SheetTabs } from "@/components/sheet-tabs/SheetTabs";
-import { ContextMenu } from "@/components/ui/ContextMenu";
-import { KeyboardShortcutsModal } from "@/components/ui/KeyboardShortcutsModal";
-import { FindReplaceModal } from "@/components/ui/FindReplaceModal";
-import { VersionHistoryModal } from "@/components/ui/VersionHistoryModal";
 import { AiPanel } from "@/components/header/AiPanel";
-import type { AgentAction } from "@/services/aiService";
+import { Header } from "@/components/header/Header";
+import { MenuBar } from "@/components/header/MenuBar";
+import { SheetTabs } from "@/components/sheet-tabs/SheetTabs";
+import { Toolbar } from "@/components/toolbar/Toolbar";
 import { CommentModal } from "@/components/ui/CommentModal";
-import { commentService } from "@/services/commentService";
-import { evaluate } from "@/lib/formula/evaluator";
-import { isFormula } from "@/lib/cell/validator";
-import { useSpreadsheet } from "@/hooks/useSpreadsheet";
-import { useCollaboration } from "@/hooks/useCollaboration";
-import { useSelection } from "@/hooks/useSelection";
-import { useKeyboard } from "@/hooks/useKeyboard";
+import { ContextMenu } from "@/components/ui/ContextMenu";
+import { FindReplaceModal } from "@/components/ui/FindReplaceModal";
+import { KeyboardShortcutsModal } from "@/components/ui/KeyboardShortcutsModal";
+import { VersionHistoryModal } from "@/components/ui/VersionHistoryModal";
+import { GRID } from "@/constants/defaults";
 import { useClipboard } from "@/hooks/useClipboard";
+import { useCollaboration } from "@/hooks/useCollaboration";
 import { useContextMenu } from "@/hooks/useContextMenu";
-import { useViewOptions } from "@/hooks/useViewOptions";
+import { useDataActions } from "@/hooks/useDataActions";
 import { useFileActions } from "@/hooks/useFileActions";
 import { useFormatActions } from "@/hooks/useFormatActions";
-import { useDataActions } from "@/hooks/useDataActions";
+import { useKeyboard } from "@/hooks/useKeyboard";
+import { useSelection } from "@/hooks/useSelection";
+import { useSpreadsheet } from "@/hooks/useSpreadsheet";
 import { useToolsActions } from "@/hooks/useToolsActions";
-import { GRID } from "@/constants/defaults";
-import {
-  initialUIState,
-  uiReducer,
-} from "@/store";
-import { cellRef, parseCellRef } from "@/lib/utils/coordinates";
+import { useViewOptions } from "@/hooks/useViewOptions";
+import { isFormula } from "@/lib/cell/validator";
+import { evaluate } from "@/lib/formula/evaluator";
 import { consumePendingImport } from "@/lib/import/pendingImport";
+import { cellRef, parseCellRef } from "@/lib/utils/coordinates";
+import type { AgentAction } from "@/services/aiService";
 import { cellService } from "@/services/cellService";
-import type { CellCoord } from "@/types/selection";
+import { commentService } from "@/services/commentService";
+import { initialUIState, uiReducer } from "@/store";
 import type { CellStyle } from "@/types/cell";
+import type { CellCoord } from "@/types/selection";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -48,27 +45,42 @@ export default function SheetPage({ params }: PageProps) {
   const { id: workbookId } = use(params);
   // Capture the initial ?tab= once at mount — avoids re-renders from useSearchParams
   const initialTabRef = useRef(
-    typeof window !== "undefined"
-      ? new URLSearchParams(window.location.search).get("tab")
-      : null,
+    typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("tab") : null,
   );
 
-  const { state, dispatch: spreadsheetDispatch, loadWorkbook, switchSheet, addSheet, deleteSheet, renameWorkbook } =
-    useSpreadsheet();
+  const {
+    state,
+    dispatch: spreadsheetDispatch,
+    loadWorkbook,
+    switchSheet,
+    addSheet,
+    deleteSheet,
+    renameWorkbook,
+  } = useSpreadsheet();
+
+  // canEdit: owner and editors can edit; viewers/commenters cannot
+  const canEdit = !state.myRole || state.myRole === "OWNER" || state.myRole === "EDITOR";
 
   const { collab, setCellCrdt, undo, redo, broadcastCursor, loadIntoCrdt } = useCollaboration({
     sheetId: state.activeSheetId,
+    workbookId: state.workbookId,
     spreadsheetDispatch,
   });
 
   const { selection: sel, setActive, setRange } = useSelection();
   const [ui, uiDispatch] = useReducer(uiReducer, initialUIState);
   const [editingRef, setEditingRef] = useState<string | null>(null);
+  // Ref-based mirror of editingRef so commitEdit always reads the correct
+  // editing cell synchronously, even after React has re-rendered sel.active
+  // to a new cell (e.g. when the user clicks another cell while editing).
+  const editingCellRef = useRef<string | null>(null);
   const [totalRows, setTotalRows] = useState<number>(GRID.ROWS);
 
   // ── Effects ───────────────────────────────────────────────────────────────
 
-  useEffect(() => { loadWorkbook(workbookId, initialTabRef.current); }, [workbookId, loadWorkbook]);
+  useEffect(() => {
+    loadWorkbook(workbookId, initialTabRef.current);
+  }, [workbookId, loadWorkbook]);
 
   // Optimistic import: if the dashboard stashed parsed data, render it instantly
   // then persist to DB in the background.
@@ -104,7 +116,10 @@ export default function SheetPage({ params }: PageProps) {
   }, [state.loading, state.activeSheetId, loadIntoCrdt]); // state.cells intentionally omitted
 
   useEffect(() => {
-    if (!sel.active) { uiDispatch({ type: "SET_FORMULA_BAR", value: "" }); return; }
+    if (!sel.active) {
+      uiDispatch({ type: "SET_FORMULA_BAR", value: "" });
+      return;
+    }
     const cell = state.cells[cellRef(sel.active.row, sel.active.col)];
     uiDispatch({ type: "SET_FORMULA_BAR", value: cell?.raw ?? "" });
   }, [sel.active, state.cells]);
@@ -116,39 +131,49 @@ export default function SheetPage({ params }: PageProps) {
 
   // ── Cell interaction ──────────────────────────────────────────────────────
 
-  const startEditAt = useCallback((coord: CellCoord, char?: string) => {
-    setActive(coord);
-    const ref = cellRef(coord.row, coord.col);
-    setEditingRef(ref);
-    uiDispatch({ type: "SET_EDITING", editing: true });
-    uiDispatch({
-      type: "SET_FORMULA_BAR",
-      value: char !== undefined ? char : (state.cells[ref]?.raw ?? ""),
-    });
-  }, [state.cells]);
-
-  const commitEdit = useCallback((value: string, move?: { dr: number; dc: number }) => {
-    if (!sel.active) return;
-    const ref = cellRef(sel.active.row, sel.active.col);
-    // Evaluate the formula on the client so the result travels with the edit.
-    // Both the local optimistic update and the backend broadcast will carry
-    // the evaluated value, meaning peers instantly see the result without a reload.
-    const computed = isFormula(value)
-      ? String(evaluate(value.slice(1), state.cells))
-      : value;
-    setCellCrdt(ref, value, state.cells[ref]?.style, computed);
-    setEditingRef(null);
-    uiDispatch({ type: "SET_EDITING", editing: false });
-    uiDispatch({ type: "SET_FORMULA_BAR", value });
-    if (move) {
-      setActive({
-        row: Math.max(0, sel.active.row + move.dr),
-        col: Math.max(0, sel.active.col + move.dc),
+  const startEditAt = useCallback(
+    (coord: CellCoord, char?: string) => {
+      setActive(coord);
+      const ref = cellRef(coord.row, coord.col);
+      editingCellRef.current = ref; // sync ref before React state update
+      setEditingRef(ref);
+      uiDispatch({ type: "SET_EDITING", editing: true });
+      uiDispatch({
+        type: "SET_FORMULA_BAR",
+        value: char !== undefined ? char : (state.cells[ref]?.raw ?? ""),
       });
-    }
-  }, [sel.active, state.cells, setCellCrdt]);
+    },
+    [state.cells],
+  );
+
+  const commitEdit = useCallback(
+    (value: string, move?: { dr: number; dc: number }) => {
+      // Use the ref-based editing cell — this is always correct even when
+      // sel.active has already moved to a new cell (e.g. fired from onBlur
+      // after React re-rendered due to a handleCellClick calling setActive).
+      const ref = editingCellRef.current;
+      if (!ref) return; // no active edit, or already committed (double-commit guard)
+      editingCellRef.current = null; // clear immediately — prevents re-entry from blur
+      setEditingRef(null);
+      uiDispatch({ type: "SET_EDITING", editing: false });
+      const parsed = parseCellRef(ref);
+      if (!parsed) return;
+      // Evaluate the formula on the client so the result travels with the edit.
+      const computed = isFormula(value) ? String(evaluate(value.slice(1), state.cells)) : value;
+      setCellCrdt(ref, value, state.cells[ref]?.style, computed);
+      uiDispatch({ type: "SET_FORMULA_BAR", value });
+      if (move) {
+        setActive({
+          row: Math.max(0, parsed.row + move.dr),
+          col: Math.max(0, parsed.col + move.dc),
+        });
+      }
+    },
+    [state.cells, setCellCrdt, setActive],
+  );
 
   const cancelEdit = useCallback(() => {
+    editingCellRef.current = null;
     setEditingRef(null);
     uiDispatch({ type: "SET_EDITING", editing: false });
     if (sel.active) {
@@ -157,36 +182,84 @@ export default function SheetPage({ params }: PageProps) {
     }
   }, [sel.active, state.cells]);
 
-  const handleCellClick = useCallback((coord: CellCoord) => {
-    setEditingRef(null);
-    setActive(coord);
-    uiDispatch({ type: "SET_EDITING", editing: false });
-    const cell = state.cells[cellRef(coord.row, coord.col)];
-    uiDispatch({ type: "SET_FORMULA_BAR", value: cell?.raw ?? "" });
-  }, [state.cells]);
-
-  const handleSelectionDrag = useCallback((coord: CellCoord) => {
-    if (!sel.active) return;
-    setRange({ start: sel.active, end: coord });
-  }, [sel.active, setRange]);
-
-  const handleStyleChange = useCallback((change: Partial<CellStyle>) => {
-    if (!sel.active) return;
-    const range = sel.range ?? { start: sel.active, end: sel.active };
-    const rowStart = Math.min(range.start.row, range.end.row);
-    const rowEnd = Math.max(range.start.row, range.end.row);
-    const colStart = Math.min(range.start.col, range.end.col);
-    const colEnd = Math.max(range.start.col, range.end.col);
-    for (let r = rowStart; r <= rowEnd; r++) {
-      for (let c = colStart; c <= colEnd; c++) {
-        const ref = cellRef(r, c);
-        const cell = state.cells[ref];
-        // Preserve the existing computed (formula result) so style changes
-        // don't accidentally regress formula cells to showing raw formula text.
-        setCellCrdt(ref, cell?.raw ?? "", { ...(cell?.style ?? {}), ...change }, cell?.computed);
+  const handleCellClick = useCallback(
+    (coord: CellCoord, shiftKey: boolean) => {
+      setEditingRef(null);
+      uiDispatch({ type: "SET_EDITING", editing: false });
+      if (shiftKey && sel.active) {
+        // Extend selection — keep anchor, move end
+        setRange({ start: sel.active, end: coord });
+      } else {
+        setActive(coord);
+        const cell = state.cells[cellRef(coord.row, coord.col)];
+        uiDispatch({ type: "SET_FORMULA_BAR", value: cell?.raw ?? "" });
       }
-    }
-  }, [sel.active, sel.range, state.cells, setCellCrdt]);
+    },
+    [sel.active, state.cells, setRange, setActive],
+  );
+
+  const handleColumnSelect = useCallback(
+    (col: number, shiftKey: boolean) => {
+      // Dismiss any inline editor (blur fires → commitEdit via editingCellRef)
+      if (editingCellRef.current) {
+        setEditingRef(null);
+        uiDispatch({ type: "SET_EDITING", editing: false });
+      }
+      if (shiftKey && sel.active) {
+        setRange({ start: { row: 0, col: sel.active.col }, end: { row: totalRows - 1, col } });
+      } else {
+        setActive({ row: 0, col });
+        setRange({ start: { row: 0, col }, end: { row: totalRows - 1, col } });
+      }
+    },
+    [sel.active, totalRows, setActive, setRange],
+  );
+
+  const handleRowSelect = useCallback(
+    (row: number, shiftKey: boolean) => {
+      // Dismiss any inline editor (blur fires → commitEdit via editingCellRef)
+      if (editingCellRef.current) {
+        setEditingRef(null);
+        uiDispatch({ type: "SET_EDITING", editing: false });
+      }
+      if (shiftKey && sel.active) {
+        setRange({ start: { row: sel.active.row, col: 0 }, end: { row, col: GRID.COLS - 1 } });
+      } else {
+        setActive({ row, col: 0 });
+        setRange({ start: { row, col: 0 }, end: { row, col: GRID.COLS - 1 } });
+      }
+    },
+    [sel.active, setActive, setRange],
+  );
+
+  const handleSelectionDrag = useCallback(
+    (coord: CellCoord) => {
+      if (!sel.active) return;
+      setRange({ start: sel.active, end: coord });
+    },
+    [sel.active, setRange],
+  );
+
+  const handleStyleChange = useCallback(
+    (change: Partial<CellStyle>) => {
+      if (!sel.active) return;
+      const range = sel.range ?? { start: sel.active, end: sel.active };
+      const rowStart = Math.min(range.start.row, range.end.row);
+      const rowEnd = Math.max(range.start.row, range.end.row);
+      const colStart = Math.min(range.start.col, range.end.col);
+      const colEnd = Math.max(range.start.col, range.end.col);
+      for (let r = rowStart; r <= rowEnd; r++) {
+        for (let c = colStart; c <= colEnd; c++) {
+          const ref = cellRef(r, c);
+          const cell = state.cells[ref];
+          // Preserve the existing computed (formula result) so style changes
+          // don't accidentally regress formula cells to showing raw formula text.
+          setCellCrdt(ref, cell?.raw ?? "", { ...(cell?.style ?? {}), ...change }, cell?.computed);
+        }
+      }
+    },
+    [sel.active, sel.range, state.cells, setCellCrdt],
+  );
 
   // ── Derived ───────────────────────────────────────────────────────────────
 
@@ -216,10 +289,7 @@ export default function SheetPage({ params }: PageProps) {
 
   const data = useDataActions({ active: sel.active, dispatch: spreadsheetDispatch });
 
-  const navigateToCell = useCallback(
-    (coord: CellCoord) => setActive(coord),
-    [setActive],
-  );
+  const navigateToCell = useCallback((coord: CellCoord) => setActive(coord), [setActive]);
 
   const tools = useToolsActions({
     cells: state.cells,
@@ -268,10 +338,13 @@ export default function SheetPage({ params }: PageProps) {
     await addSheet(`Sheet${state.sheets.length + 1}`);
   }, [state.sheets.length, addSheet]);
 
-  const handleSwitchSheet = useCallback(async (id: string) => {
-    window.history.replaceState(null, "", `/sheet/${workbookId}?tab=${id}`);
-    await switchSheet(id);
-  }, [switchSheet, workbookId]);
+  const handleSwitchSheet = useCallback(
+    async (id: string) => {
+      window.history.replaceState(null, "", `/sheet/${workbookId}?tab=${id}`);
+      await switchSheet(id);
+    },
+    [switchSheet, workbookId],
+  );
 
   // ── Keyboard shortcuts + modal ────────────────────────────────────────────
 
@@ -284,31 +357,39 @@ export default function SheetPage({ params }: PageProps) {
   // Fetch which cells have comments whenever the active sheet changes
   const refreshComments = useCallback(() => {
     if (!state.activeSheetId) return;
-    commentService.list(state.activeSheetId).then((comments) => {
-      const refs = new Set(comments.map((c) => cellRef(c.row, c.col)));
-      setCommentedCells(refs);
-    }).catch(() => {});
+    commentService
+      .list(state.activeSheetId)
+      .then((comments) => {
+        const refs = new Set(comments.map((c) => cellRef(c.row, c.col)));
+        setCommentedCells(refs);
+      })
+      .catch(() => {});
   }, [state.activeSheetId]);
 
-  useEffect(() => { refreshComments(); }, [refreshComments]);
+  useEffect(() => {
+    refreshComments();
+  }, [refreshComments]);
 
   // ── AI action handler ───────────────────────────────────────────────────
 
-  const handleAiActions = useCallback((actions: AgentAction[]) => {
-    for (const action of actions) {
-      if ((action.type === "SET_CELLS" || action.type === "DELETE_CELLS") && action.cells) {
-        for (const [ref, data] of Object.entries(action.cells)) {
-          const parsed = parseCellRef(ref);
-          if (!parsed) continue;
-          const existing = state.cells[ref];
-          setCellCrdt(ref, data.raw, existing?.style, data.raw);
+  const handleAiActions = useCallback(
+    (actions: AgentAction[]) => {
+      for (const action of actions) {
+        if ((action.type === "SET_CELLS" || action.type === "DELETE_CELLS") && action.cells) {
+          for (const [ref, data] of Object.entries(action.cells)) {
+            const parsed = parseCellRef(ref);
+            if (!parsed) continue;
+            const existing = state.cells[ref];
+            setCellCrdt(ref, data.raw, existing?.style, data.raw);
+          }
+        }
+        if (action.type === "ADD_COMMENT") {
+          refreshComments();
         }
       }
-      if (action.type === "ADD_COMMENT") {
-        refreshComments();
-      }
-    }
-  }, [state.cells, setCellCrdt, refreshComments]);
+    },
+    [state.cells, setCellCrdt, refreshComments],
+  );
 
   useKeyboard({
     active: sel.active,
@@ -320,20 +401,33 @@ export default function SheetPage({ params }: PageProps) {
         col: Math.max(0, sel.active.col + dc),
       });
     },
-    onStartEdit: (char) => { if (sel.active) startEditAt(sel.active, char); },
+    onStartEdit: (char) => {
+      if (canEdit && sel.active) startEditAt(sel.active, char);
+    },
     onCommit: () => commitEdit(ui.formulaBarValue),
     onCancel: cancelEdit,
     onDelete: () => {
-      if (!sel.active) return;
-      const ref = cellRef(sel.active.row, sel.active.col);
-      setCellCrdt(ref, "", state.cells[ref]?.style);
+      if (!canEdit || !sel.active) return;
+      const range = sel.range ?? { start: sel.active, end: sel.active };
+      const rowStart = Math.min(range.start.row, range.end.row);
+      const rowEnd = Math.max(range.start.row, range.end.row);
+      const colStart = Math.min(range.start.col, range.end.col);
+      const colEnd = Math.max(range.start.col, range.end.col);
+      for (let r = rowStart; r <= rowEnd; r++) {
+        for (let c = colStart; c <= colEnd; c++) {
+          const ref = cellRef(r, c);
+          setCellCrdt(ref, "", state.cells[ref]?.style);
+        }
+      }
       uiDispatch({ type: "SET_FORMULA_BAR", value: "" });
     },
     onUndo: undo,
     onRedo: redo,
     onCopy: () => copy(),
     onCut: () => cut(),
-    onPaste: () => { if (sel.active) paste(sel.active.row, sel.active.col); },
+    onPaste: () => {
+      if (sel.active) paste(sel.active.row, sel.active.col);
+    },
     onBold: () => handleStyleChange({ bold: !activeStyle?.bold }),
     onItalic: () => handleStyleChange({ italic: !activeStyle?.italic }),
     onUnderline: () => handleStyleChange({ underline: !activeStyle?.underline }),
@@ -361,9 +455,13 @@ export default function SheetPage({ params }: PageProps) {
       />
 
       <MenuBar
-        onUndo={undo} onRedo={redo}
-        onCut={() => cut()} onCopy={() => copy()}
-        onPaste={() => { if (sel.active) paste(sel.active.row, sel.active.col); }}
+        onUndo={undo}
+        onRedo={redo}
+        onCut={() => cut()}
+        onCopy={() => copy()}
+        onPaste={() => {
+          if (sel.active) paste(sel.active.row, sel.active.col);
+        }}
         onImport={file.triggerImport}
         onExport={file.handleExport}
         onShare={file.handleShare}
@@ -419,8 +517,7 @@ export default function SheetPage({ params }: PageProps) {
               const cell = state.cells[ref];
               if (!cell?.raw) continue;
               const trimmed = cell.raw.trim();
-              if (trimmed !== cell.raw)
-                setCellCrdt(ref, trimmed, cell.style, cell.computed);
+              if (trimmed !== cell.raw) setCellCrdt(ref, trimmed, cell.style, cell.computed);
             }
           }
         }}
@@ -442,7 +539,9 @@ export default function SheetPage({ params }: PageProps) {
               onCancel={cancelEdit}
               onFocus={() => {
                 if (sel.active && !ui.isEditingCell) {
-                  setEditingRef(cellRef(sel.active.row, sel.active.col));
+                  const fbRef = cellRef(sel.active.row, sel.active.col);
+                  editingCellRef.current = fbRef;
+                  setEditingRef(fbRef);
                   uiDispatch({ type: "SET_EDITING", editing: true });
                 }
               }}
@@ -466,13 +565,17 @@ export default function SheetPage({ params }: PageProps) {
               editingRef={editingRef}
               editValue={ui.formulaBarValue}
               onCellClick={handleCellClick}
-              onCellDoubleClick={(coord) => startEditAt(coord)}
+              onCellDoubleClick={(coord) => {
+                if (canEdit) startEditAt(coord);
+              }}
               onEditChange={(v) => uiDispatch({ type: "SET_FORMULA_BAR", value: v })}
               onEditCommit={commitEdit}
               onEditCancel={cancelEdit}
               onSelectionDrag={handleSelectionDrag}
               onColumnResize={handleColumnResize}
               onRowResize={handleRowResize}
+              onColumnSelect={handleColumnSelect}
+              onRowSelect={handleRowSelect}
               onContextMenu={handleContextMenu}
               onLoadMore={handleLoadMore}
               showGridlines={view.showGridlines}
@@ -490,11 +593,14 @@ export default function SheetPage({ params }: PageProps) {
             onSelect={handleSwitchSheet}
             onAddSheet={handleAddSheet}
             onDeleteSheet={deleteSheet}
+            canEdit={canEdit}
           />
 
           {/* Collab connection indicator */}
           <div className="flex items-center gap-1.5 px-3 py-1 border-t border-gray-100 bg-gray-50 text-[11px] text-gray-400 shrink-0">
-            <span className={`size-1.5 rounded-full ${collab.connected ? "bg-emerald-400" : "bg-red-400"}`} />
+            <span
+              className={`size-1.5 rounded-full ${collab.connected ? "bg-emerald-400" : "bg-red-400"}`}
+            />
             {collab.connected ? "Live" : "Offline"}
             {collab.users.length > 0 && (
               <span className="ml-2 text-gray-400">
@@ -522,7 +628,13 @@ export default function SheetPage({ params }: PageProps) {
         items={[
           { label: "Cut", shortcut: "⌘X", onClick: () => cut() },
           { label: "Copy", shortcut: "⌘C", onClick: () => copy() },
-          { label: "Paste", shortcut: "⌘V", onClick: () => { if (sel.active) paste(sel.active.row, sel.active.col); } },
+          {
+            label: "Paste",
+            shortcut: "⌘V",
+            onClick: () => {
+              if (sel.active) paste(sel.active.row, sel.active.col);
+            },
+          },
           { label: "", divider: true, onClick: () => {} },
           { label: "Insert row above", onClick: data.handleInsertRowAbove, disabled: !sel.active },
           { label: "Insert row below", onClick: data.handleInsertRowBelow, disabled: !sel.active },
@@ -540,9 +652,18 @@ export default function SheetPage({ params }: PageProps) {
             label: "Clear contents",
             shortcut: "Del",
             onClick: () => {
-              if (!sel.active) return;
-              const ref = cellRef(sel.active.row, sel.active.col);
-              setCellCrdt(ref, "", state.cells[ref]?.style);
+              if (!canEdit || !sel.active) return;
+              const range = sel.range ?? { start: sel.active, end: sel.active };
+              const rowStart = Math.min(range.start.row, range.end.row);
+              const rowEnd = Math.max(range.start.row, range.end.row);
+              const colStart = Math.min(range.start.col, range.end.col);
+              const colEnd = Math.max(range.start.col, range.end.col);
+              for (let r = rowStart; r <= rowEnd; r++) {
+                for (let c = colStart; c <= colEnd; c++) {
+                  const ref = cellRef(r, c);
+                  setCellCrdt(ref, "", state.cells[ref]?.style);
+                }
+              }
               uiDispatch({ type: "SET_FORMULA_BAR", value: "" });
             },
           },
@@ -556,7 +677,10 @@ export default function SheetPage({ params }: PageProps) {
           sheetId={state.activeSheetId}
           row={commentCell.row}
           col={commentCell.col}
-          onClose={() => { setCommentCell(null); refreshComments(); }}
+          onClose={() => {
+            setCommentCell(null);
+            refreshComments();
+          }}
         />
       )}
 

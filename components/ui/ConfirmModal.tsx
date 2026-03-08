@@ -34,9 +34,7 @@ export function ConfirmModal({
 
   return (
     <Modal open={open} onClose={loading ? () => {} : onClose} title={title}>
-      {description && (
-        <p className="text-sm text-gray-500 mb-6">{description}</p>
-      )}
+      {description && <p className="text-sm text-gray-500 mb-6">{description}</p>}
       <div className="flex justify-end gap-3 mt-2">
         <button
           type="button"

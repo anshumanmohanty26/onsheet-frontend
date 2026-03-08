@@ -17,8 +17,7 @@ export const userService = {
   register: (body: { name: string; email: string; password: string }) =>
     api.post<User>("/auth/register", body),
 
-  login: (body: { email: string; password: string }) =>
-    api.post<User>("/auth/login", body),
+  login: (body: { email: string; password: string }) => api.post<User>("/auth/login", body),
 
   logout: () => api.post<void>("/auth/logout"),
 

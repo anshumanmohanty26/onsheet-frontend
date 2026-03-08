@@ -1,7 +1,7 @@
 "use client";
 
+import { type AgentAction, aiService } from "@/services/aiService";
 import { useEffect, useRef, useState } from "react";
-import { aiService, type AgentAction } from "@/services/aiService";
 
 interface Message {
   role: "user" | "assistant";
@@ -41,19 +41,13 @@ export function AiPanel({ sheetId, onClose, onActions }: Props) {
     try {
       const result = await aiService.ask(sheetId, query);
       const actionsCount = result.actions?.length ?? 0;
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", text: result.answer, actionsCount },
-      ]);
+      setMessages((prev) => [...prev, { role: "assistant", text: result.answer, actionsCount }]);
       if (actionsCount > 0 && onActions) {
         onActions(result.actions);
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to get a response.";
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", text: `Error: ${msg}` },
-      ]);
+      setMessages((prev) => [...prev, { role: "assistant", text: `Error: ${msg}` }]);
     } finally {
       setLoading(false);
     }
@@ -68,6 +62,7 @@ export function AiPanel({ sheetId, onClose, onActions }: Props) {
           <span className="text-sm font-semibold text-gray-800">OnSheet AI</span>
         </div>
         <button
+          type="button"
           onClick={onClose}
           className="text-gray-400 hover:text-gray-600 transition-colors text-lg leading-none"
           aria-label="Close AI panel"
@@ -84,7 +79,10 @@ export function AiPanel({ sheetId, onClose, onActions }: Props) {
           </div>
         )}
         {messages.map((m, i) => (
-          <div key={i} className={`flex flex-col gap-0.5 animate-slide-up ${m.role === "user" ? "items-end" : "items-start"}`}>
+          <div
+            key={i}
+            className={`flex flex-col gap-0.5 animate-slide-up ${m.role === "user" ? "items-end" : "items-start"}`}
+          >
             <div
               className={`text-xs px-3 py-2 rounded-xl max-w-[90%] whitespace-pre-wrap leading-relaxed ${
                 m.role === "user"
@@ -96,7 +94,8 @@ export function AiPanel({ sheetId, onClose, onActions }: Props) {
             </div>
             {(m.actionsCount ?? 0) > 0 && (
               <div className="text-[10px] text-emerald-500 px-1 font-medium">
-                ✓ {m.actionsCount} change{m.actionsCount! > 1 ? "s" : ""} applied to sheet
+                ✓ {m.actionsCount} change{(m.actionsCount as number) > 1 ? "s" : ""} applied to
+                sheet
               </div>
             )}
           </div>
@@ -134,6 +133,7 @@ export function AiPanel({ sheetId, onClose, onActions }: Props) {
             className="flex-1 text-xs text-gray-800 placeholder:text-gray-400 border border-gray-200 rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-emerald-400 disabled:opacity-50"
           />
           <button
+            type="button"
             onClick={handleSubmit}
             disabled={loading || !input.trim() || !sheetId}
             className="shrink-0 size-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center hover:bg-emerald-700 disabled:opacity-40 transition-colors"

@@ -1,9 +1,9 @@
-import type { CellMap } from "@/types/cell";
-import type { ASTNode, EvalContext, FormulaValue } from "./types";
-import { parse } from "./parser";
-import { FUNCTIONS } from "./functions";
-import { cellRef, colLabelToIndex, parseCellRef } from "@/lib/utils/coordinates";
 import { isFormula } from "@/lib/cell/validator";
+import { cellRef, parseCellRef } from "@/lib/utils/coordinates";
+import type { CellMap } from "@/types/cell";
+import { FUNCTIONS } from "./functions";
+import { parse } from "./parser";
+import type { ASTNode, EvalContext, FormulaValue } from "./types";
 
 /**
  * Evaluate a formula string (without leading '=') against a cell map.

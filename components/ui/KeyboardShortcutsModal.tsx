@@ -72,6 +72,7 @@ export function KeyboardShortcutsModal({ onClose }: Props) {
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 sticky top-0 bg-white z-10">
           <h2 className="text-sm font-semibold text-gray-900">Keyboard shortcuts</h2>
           <button
+            type="button"
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 transition-colors text-lg leading-none"
             aria-label="Close"

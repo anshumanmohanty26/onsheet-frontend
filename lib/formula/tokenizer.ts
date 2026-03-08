@@ -1,4 +1,4 @@
-import type { FormulaToken, FormulaTokenType } from "@/types/formula";
+import type { FormulaToken } from "@/types/formula";
 
 /** Tokenise a formula string (without the leading '=') into an array of tokens. */
 export function tokenize(formula: string): FormulaToken[] {
@@ -58,7 +58,11 @@ export function tokenize(formula: string): FormulaToken[] {
       let op = ch;
       if (i + 1 < src.length) {
         const next = src[i + 1];
-        if ((ch === "<" && (next === "=" || next === ">")) || (ch === ">" && next === "=") || (ch === "!" && next === "=")) {
+        if (
+          (ch === "<" && (next === "=" || next === ">")) ||
+          (ch === ">" && next === "=") ||
+          (ch === "!" && next === "=")
+        ) {
           op += next;
           i++;
         }

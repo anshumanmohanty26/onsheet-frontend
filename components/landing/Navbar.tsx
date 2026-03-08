@@ -15,10 +15,7 @@ export function Navbar() {
         aria-label="Main navigation"
       >
         {/* Logo */}
-        <Link
-          href="/"
-          className="flex items-center gap-2.5 font-semibold text-xl text-gray-900"
-        >
+        <Link href="/" className="flex items-center gap-2.5 font-semibold text-xl text-gray-900">
           <LogoIcon />
           OnSheet
         </Link>
@@ -60,50 +57,12 @@ export function Navbar() {
 
 function LogoIcon() {
   return (
-    <svg
-      width="28"
-      height="28"
-      viewBox="0 0 28 28"
-      fill="none"
-      aria-hidden="true"
-    >
+    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
       <rect width="28" height="28" rx="6" fill="#059669" />
-      <rect
-        x="5"
-        y="5"
-        width="7"
-        height="7"
-        rx="1"
-        fill="white"
-        fillOpacity="0.95"
-      />
-      <rect
-        x="16"
-        y="5"
-        width="7"
-        height="7"
-        rx="1"
-        fill="white"
-        fillOpacity="0.55"
-      />
-      <rect
-        x="5"
-        y="16"
-        width="7"
-        height="7"
-        rx="1"
-        fill="white"
-        fillOpacity="0.55"
-      />
-      <rect
-        x="16"
-        y="16"
-        width="7"
-        height="7"
-        rx="1"
-        fill="white"
-        fillOpacity="0.95"
-      />
+      <rect x="5" y="5" width="7" height="7" rx="1" fill="white" fillOpacity="0.95" />
+      <rect x="16" y="5" width="7" height="7" rx="1" fill="white" fillOpacity="0.55" />
+      <rect x="5" y="16" width="7" height="7" rx="1" fill="white" fillOpacity="0.55" />
+      <rect x="16" y="16" width="7" height="7" rx="1" fill="white" fillOpacity="0.95" />
     </svg>
   );
 }

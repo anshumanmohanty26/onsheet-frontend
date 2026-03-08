@@ -1,8 +1,8 @@
 "use client";
 
-import { FormEvent, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { FormEvent, useEffect, useRef, useState } from "react";
 
 interface NewWorkbookModalProps {
   open: boolean;
@@ -10,11 +10,7 @@ interface NewWorkbookModalProps {
   onCreate: (title: string) => Promise<void>;
 }
 
-export function NewWorkbookModal({
-  open,
-  onClose,
-  onCreate,
-}: NewWorkbookModalProps) {
+export function NewWorkbookModal({ open, onClose, onCreate }: NewWorkbookModalProps) {
   const [title, setTitle] = useState("Untitled spreadsheet");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -68,9 +64,7 @@ export function NewWorkbookModal({
         className="w-full max-w-sm rounded-2xl bg-white shadow-xl p-6"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-lg font-semibold text-gray-900 mb-5">
-          New spreadsheet
-        </h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-5">New spreadsheet</h2>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <Input
             ref={inputRef}
@@ -86,12 +80,7 @@ export function NewWorkbookModal({
             autoComplete="off"
           />
           <div className="flex gap-3 justify-end pt-1">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={onClose}
-              disabled={loading}
-            >
+            <Button type="button" variant="secondary" onClick={onClose} disabled={loading}>
               Cancel
             </Button>
             <Button type="submit" loading={loading}>

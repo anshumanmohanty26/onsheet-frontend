@@ -14,7 +14,9 @@ const alignments: { value: HorizontalAlign; icon: React.ReactNode; label: string
     label: "Align left",
     icon: (
       <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="15" y2="12" /><line x1="3" y1="18" x2="18" y2="18" />
+        <line x1="3" y1="6" x2="21" y2="6" />
+        <line x1="3" y1="12" x2="15" y2="12" />
+        <line x1="3" y1="18" x2="18" y2="18" />
       </svg>
     ),
   },
@@ -23,7 +25,9 @@ const alignments: { value: HorizontalAlign; icon: React.ReactNode; label: string
     label: "Align center",
     icon: (
       <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <line x1="3" y1="6" x2="21" y2="6" /><line x1="6" y1="12" x2="18" y2="12" /><line x1="4" y1="18" x2="20" y2="18" />
+        <line x1="3" y1="6" x2="21" y2="6" />
+        <line x1="6" y1="12" x2="18" y2="12" />
+        <line x1="4" y1="18" x2="20" y2="18" />
       </svg>
     ),
   },
@@ -32,7 +36,9 @@ const alignments: { value: HorizontalAlign; icon: React.ReactNode; label: string
     label: "Align right",
     icon: (
       <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <line x1="3" y1="6" x2="21" y2="6" /><line x1="9" y1="12" x2="21" y2="12" /><line x1="6" y1="18" x2="21" y2="18" />
+        <line x1="3" y1="6" x2="21" y2="6" />
+        <line x1="9" y1="12" x2="21" y2="12" />
+        <line x1="6" y1="18" x2="21" y2="18" />
       </svg>
     ),
   },
@@ -45,6 +51,7 @@ export function AlignmentButtons({ value = "left", onChange }: AlignmentButtonsP
       {alignments.map((a) => (
         <Tooltip key={a.value} content={a.label}>
           <button
+            type="button"
             onClick={() => onChange(a.value)}
             className={`h-7 px-1.5 rounded text-sm transition-colors ${
               value === a.value ? "bg-gray-200 text-gray-900" : "text-gray-600 hover:bg-gray-100"

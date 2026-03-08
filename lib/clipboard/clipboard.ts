@@ -1,7 +1,7 @@
-import type { CellData, CellMap } from "@/types/cell";
-import type { SelectionRange } from "@/types/selection";
 import { cellRef } from "@/lib/utils/coordinates";
 import { normalizeRange } from "@/lib/utils/range";
+import type { CellData, CellMap } from "@/types/cell";
+import type { SelectionRange } from "@/types/selection";
 
 export interface ClipboardData {
   /** 2D array of cells [row][col], null means empty. */
@@ -38,9 +38,7 @@ export function serializeCells(
 /** Convert ClipboardData to plain-text TSV for the system clipboard. */
 export function toTSV(data: ClipboardData): string {
   return data.cells
-    .map((row) =>
-      row.map((c) => (c ? c.computed ?? c.raw : "")).join("\t"),
-    )
+    .map((row) => row.map((c) => (c ? (c.computed ?? c.raw) : "")).join("\t"))
     .join("\n");
 }
 

@@ -7,9 +7,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
       {/* Header */}
       <header className="flex items-center justify-between px-6 py-4">
         <Link href="/" className="flex items-center gap-2">
-          <span className="text-2xl font-bold text-emerald-600 tracking-tight">
-            OnSheet
-          </span>
+          <span className="text-2xl font-bold text-emerald-600 tracking-tight">OnSheet</span>
         </Link>
       </header>
 

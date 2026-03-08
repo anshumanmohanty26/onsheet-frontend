@@ -1,4 +1,4 @@
-import { Navbar, Hero, Features, StatsAndTestimonials, CTA, Footer } from "@/components/landing";
+import { CTA, Features, Footer, Hero, Navbar, StatsAndTestimonials } from "@/components/landing";
 
 export default function Home() {
   return (

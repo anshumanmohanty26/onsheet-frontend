@@ -43,8 +43,7 @@ export const workbookService = {
 
   get: (id: string) => api.get<Workbook>(`/workbooks/${id}`),
 
-  create: (body: CreateWorkbookDto) =>
-    api.post<Workbook>("/workbooks", body),
+  create: (body: CreateWorkbookDto) => api.post<Workbook>("/workbooks", body),
 
   update: (id: string, body: Partial<CreateWorkbookDto>) =>
     api.patch<Workbook>(`/workbooks/${id}`, body),
@@ -52,8 +51,7 @@ export const workbookService = {
   delete: (id: string) => api.delete<void>(`/workbooks/${id}`),
 
   // Sheets within a workbook
-  listSheets: (workbookId: string) =>
-    api.get<Sheet[]>(`/workbooks/${workbookId}/sheets`),
+  listSheets: (workbookId: string) => api.get<Sheet[]>(`/workbooks/${workbookId}/sheets`),
 
   createSheet: (workbookId: string, body: CreateSheetDto) =>
     api.post<Sheet>(`/workbooks/${workbookId}/sheets`, body),

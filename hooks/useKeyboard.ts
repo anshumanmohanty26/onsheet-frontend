@@ -1,5 +1,5 @@
-import { useEffect } from "react";
 import type { CellCoord } from "@/types/selection";
+import { useEffect } from "react";
 
 interface UseKeyboardOptions {
   active: CellCoord | null;
@@ -37,10 +37,29 @@ export function useKeyboard(opts: UseKeyboardOptions) {
 
       // When editing, only intercept Escape and Enter/Tab
       if (opts.isEditing) {
-        if (e.key === "Escape") { e.preventDefault(); opts.onCancel(); return; }
-        if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); opts.onCommit(); opts.onNavigate(1, 0); return; }
-        if (e.key === "Enter" && e.shiftKey) { e.preventDefault(); opts.onCommit(); opts.onNavigate(-1, 0); return; }
-        if (e.key === "Tab") { e.preventDefault(); opts.onCommit(); opts.onNavigate(0, e.shiftKey ? -1 : 1); return; }
+        if (e.key === "Escape") {
+          e.preventDefault();
+          opts.onCancel();
+          return;
+        }
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          opts.onCommit();
+          opts.onNavigate(1, 0);
+          return;
+        }
+        if (e.key === "Enter" && e.shiftKey) {
+          e.preventDefault();
+          opts.onCommit();
+          opts.onNavigate(-1, 0);
+          return;
+        }
+        if (e.key === "Tab") {
+          e.preventDefault();
+          opts.onCommit();
+          opts.onNavigate(0, e.shiftKey ? -1 : 1);
+          return;
+        }
         return;
       }
 
@@ -48,28 +67,96 @@ export function useKeyboard(opts: UseKeyboardOptions) {
       if (!opts.active) return;
 
       // Arrow keys
-      if (e.key === "ArrowUp") { e.preventDefault(); opts.onNavigate(-1, 0); return; }
-      if (e.key === "ArrowDown") { e.preventDefault(); opts.onNavigate(1, 0); return; }
-      if (e.key === "ArrowLeft") { e.preventDefault(); opts.onNavigate(0, -1); return; }
-      if (e.key === "ArrowRight") { e.preventDefault(); opts.onNavigate(0, 1); return; }
-      if (e.key === "Tab") { e.preventDefault(); opts.onNavigate(0, e.shiftKey ? -1 : 1); return; }
-      if (e.key === "Enter") { e.preventDefault(); opts.onStartEdit(); return; }
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        opts.onNavigate(-1, 0);
+        return;
+      }
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        opts.onNavigate(1, 0);
+        return;
+      }
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        opts.onNavigate(0, -1);
+        return;
+      }
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        opts.onNavigate(0, 1);
+        return;
+      }
+      if (e.key === "Tab") {
+        e.preventDefault();
+        opts.onNavigate(0, e.shiftKey ? -1 : 1);
+        return;
+      }
+      if (e.key === "Enter") {
+        e.preventDefault();
+        opts.onStartEdit();
+        return;
+      }
 
       // Delete/Backspace
-      if (e.key === "Delete" || e.key === "Backspace") { e.preventDefault(); opts.onDelete(); return; }
+      if (e.key === "Delete" || e.key === "Backspace") {
+        e.preventDefault();
+        opts.onDelete();
+        return;
+      }
 
       // Mod shortcuts
       if (mod) {
-        if (e.key === "z" && !e.shiftKey) { e.preventDefault(); opts.onUndo(); return; }
-        if (e.key === "z" && e.shiftKey) { e.preventDefault(); opts.onRedo(); return; }
-        if (e.key === "y") { e.preventDefault(); opts.onRedo(); return; }
-        if (e.key === "c") { e.preventDefault(); opts.onCopy(); return; }
-        if (e.key === "x") { e.preventDefault(); opts.onCut(); return; }
-        if (e.key === "v") { e.preventDefault(); opts.onPaste(); return; }
-        if (e.key === "b") { e.preventDefault(); opts.onBold(); return; }
-        if (e.key === "i") { e.preventDefault(); opts.onItalic(); return; }
-        if (e.key === "u") { e.preventDefault(); opts.onUnderline(); return; }
-        if (e.key === "h") { e.preventDefault(); opts.onFindReplace?.(); return; }
+        if (e.key === "z" && !e.shiftKey) {
+          e.preventDefault();
+          opts.onUndo();
+          return;
+        }
+        if (e.key === "z" && e.shiftKey) {
+          e.preventDefault();
+          opts.onRedo();
+          return;
+        }
+        if (e.key === "y") {
+          e.preventDefault();
+          opts.onRedo();
+          return;
+        }
+        if (e.key === "c") {
+          e.preventDefault();
+          opts.onCopy();
+          return;
+        }
+        if (e.key === "x") {
+          e.preventDefault();
+          opts.onCut();
+          return;
+        }
+        if (e.key === "v") {
+          e.preventDefault();
+          opts.onPaste();
+          return;
+        }
+        if (e.key === "b") {
+          e.preventDefault();
+          opts.onBold();
+          return;
+        }
+        if (e.key === "i") {
+          e.preventDefault();
+          opts.onItalic();
+          return;
+        }
+        if (e.key === "u") {
+          e.preventDefault();
+          opts.onUnderline();
+          return;
+        }
+        if (e.key === "h") {
+          e.preventDefault();
+          opts.onFindReplace?.();
+          return;
+        }
         return;
       }
 

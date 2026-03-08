@@ -13,10 +13,7 @@ export const initialSelectionState: SelectionState = {
   isDragging: false,
 };
 
-export function selectionReducer(
-  state: SelectionState,
-  action: SelectionAction,
-): SelectionState {
+export function selectionReducer(state: SelectionState, action: SelectionAction): SelectionState {
   switch (action.type) {
     case "SET_ACTIVE":
       return {

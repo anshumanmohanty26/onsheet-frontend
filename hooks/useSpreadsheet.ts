@@ -1,19 +1,13 @@
-import { useCallback, useReducer, useRef } from "react";
+import { parseCellRef } from "@/lib/utils/coordinates";
+import { debounce } from "@/lib/utils/debounce";
 import { cellService } from "@/services/cellService";
 import { workbookService } from "@/services/workbookService";
-import {
-  initialSpreadsheetState,
-  spreadsheetReducer,
-} from "@/store/spreadsheetStore";
-import { cellRef, parseCellRef } from "@/lib/utils/coordinates";
+import { initialSpreadsheetState, spreadsheetReducer } from "@/store/spreadsheetStore";
 import type { CellData, CellStyle } from "@/types/cell";
-import { debounce } from "@/lib/utils/debounce";
+import { useCallback, useReducer, useRef } from "react";
 
 export function useSpreadsheet() {
-  const [state, dispatch] = useReducer(
-    spreadsheetReducer,
-    initialSpreadsheetState,
-  );
+  const [state, dispatch] = useReducer(spreadsheetReducer, initialSpreadsheetState);
 
   // Stable ref so loadSheet (empty deps) can read current state without stale closure
   const stateRef = useRef(state);
@@ -26,13 +20,13 @@ export function useSpreadsheet() {
       const wb = await workbookService.get(workbookId);
       const sheets = wb.sheets ?? [];
       if (!sheets.length) throw new Error("This workbook has no sheets.");
-      const targetId = (tabSheetId && sheets.find((s) => s.id === tabSheetId))
-        ? tabSheetId
-        : sheets[0].id;
+      const targetId =
+        tabSheetId && sheets.find((s) => s.id === tabSheetId) ? tabSheetId : sheets[0].id;
       dispatch({
         type: "INIT_SHEET",
         workbookId: wb.id,
         workbookName: wb.name,
+        myRole: wb.myRole,
         sheets: sheets.map((s, i) => ({
           id: s.id,
           workbookId: wb.id,
@@ -68,9 +62,7 @@ export function useSpreadsheet() {
 
       // Full init — first load of the page
       const workbooks = await workbookService.list();
-      let ownerWorkbook = workbooks.find((wb) =>
-        wb.sheets?.some((s) => s.id === sheetId),
-      );
+      let ownerWorkbook = workbooks.find((wb) => wb.sheets?.some((s) => s.id === sheetId));
 
       // If sheets weren't embedded, load them per workbook
       if (!ownerWorkbook) {
@@ -91,9 +83,10 @@ export function useSpreadsheet() {
         type: "INIT_SHEET",
         workbookId: ownerWorkbook.id,
         workbookName: ownerWorkbook.name,
+        myRole: "OWNER",
         sheets: sheets.map((s, i) => ({
           id: s.id,
-          workbookId: ownerWorkbook!.id,
+          workbookId: ownerWorkbook?.id,
           name: s.name,
           index: i,
         })),
@@ -147,21 +140,18 @@ export function useSpreadsheet() {
     [state.cells, setCell],
   );
 
-  const switchSheet = useCallback(
-    async (sheetId: string) => {
-      dispatch({ type: "SET_ACTIVE_SHEET", sheetId });
-      dispatch({ type: "SET_LOADING", loading: true });
-      try {
-        const cells = await cellService.list(sheetId);
-        dispatch({ type: "LOAD_CELLS", cells });
-      } catch {
-        dispatch({ type: "SET_ERROR", error: "Failed to load cells." });
-      } finally {
-        dispatch({ type: "SET_LOADING", loading: false });
-      }
-    },
-    [],
-  );
+  const switchSheet = useCallback(async (sheetId: string) => {
+    dispatch({ type: "SET_ACTIVE_SHEET", sheetId });
+    dispatch({ type: "SET_LOADING", loading: true });
+    try {
+      const cells = await cellService.list(sheetId);
+      dispatch({ type: "LOAD_CELLS", cells });
+    } catch {
+      dispatch({ type: "SET_ERROR", error: "Failed to load cells." });
+    } finally {
+      dispatch({ type: "SET_LOADING", loading: false });
+    }
+  }, []);
 
   const addSheet = useCallback(
     async (title: string) => {
@@ -190,19 +180,22 @@ export function useSpreadsheet() {
     [state.workbookId],
   );
 
-  const deleteSheet = useCallback(async (sheetId: string) => {
-    const current = stateRef.current;
-    if (!current.workbookId || current.sheets.length <= 1) return;
-    const wasActive = current.activeSheetId === sheetId;
-    const remaining = current.sheets.filter((s) => s.id !== sheetId);
-    const nextSheet = wasActive ? remaining[0] : null;
-    await workbookService.deleteSheet(current.workbookId, sheetId);
-    dispatch({ type: "REMOVE_SHEET", sheetId });
-    if (wasActive && nextSheet) {
-      await switchSheet(nextSheet.id);
-      window.history.replaceState(null, "", `/sheet/${current.workbookId}?tab=${nextSheet.id}`);
-    }
-  }, [switchSheet]);
+  const deleteSheet = useCallback(
+    async (sheetId: string) => {
+      const current = stateRef.current;
+      if (!current.workbookId || current.sheets.length <= 1) return;
+      const wasActive = current.activeSheetId === sheetId;
+      const remaining = current.sheets.filter((s) => s.id !== sheetId);
+      const nextSheet = wasActive ? remaining[0] : null;
+      await workbookService.deleteSheet(current.workbookId, sheetId);
+      dispatch({ type: "REMOVE_SHEET", sheetId });
+      if (wasActive && nextSheet) {
+        await switchSheet(nextSheet.id);
+        window.history.replaceState(null, "", `/sheet/${current.workbookId}?tab=${nextSheet.id}`);
+      }
+    },
+    [switchSheet],
+  );
 
   return {
     state,

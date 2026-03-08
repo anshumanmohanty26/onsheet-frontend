@@ -31,8 +31,7 @@ export const TRIM: FormulaFn = (args) => str(args[0]).trim();
 export const UPPER: FormulaFn = (args) => str(args[0]).toUpperCase();
 export const LOWER: FormulaFn = (args) => str(args[0]).toLowerCase();
 
-export const PROPER: FormulaFn = (args) =>
-  str(args[0]).replace(/\b\w/g, (c) => c.toUpperCase());
+export const PROPER: FormulaFn = (args) => str(args[0]).replace(/\b\w/g, (c) => c.toUpperCase());
 
 export const SUBSTITUTE: FormulaFn = (args) => {
   const text = str(args[0]);

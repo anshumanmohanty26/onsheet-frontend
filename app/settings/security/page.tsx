@@ -1,8 +1,8 @@
 "use client";
 
-import { FormEvent, useState } from "react";
-import { userService } from "@/services/userService";
 import { ApiError } from "@/services/api";
+import { userService } from "@/services/userService";
+import { FormEvent, useState } from "react";
 
 function PasswordField({
   id,
@@ -44,13 +44,25 @@ function PasswordField({
           tabIndex={-1}
         >
           {show ? (
-            <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg
+              className="size-4"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
               <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94" />
               <path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19" />
               <line x1="1" y1="1" x2="23" y2="23" />
             </svg>
           ) : (
-            <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg
+              className="size-4"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
               <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
               <circle cx="12" cy="12" r="3" />
             </svg>
@@ -83,7 +95,10 @@ export default function SecuritySettingsPage() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     const errs = validate();
-    if (Object.keys(errs).length) { setErrors(errs); return; }
+    if (Object.keys(errs).length) {
+      setErrors(errs);
+      return;
+    }
 
     setSaving(true);
     setErrors({});
@@ -91,12 +106,16 @@ export default function SecuritySettingsPage() {
     try {
       await userService.changePassword({ currentPassword: current, newPassword: next });
       setSuccess("Password changed successfully.");
-      setCurrent(""); setNext(""); setConfirm("");
+      setCurrent("");
+      setNext("");
+      setConfirm("");
     } catch (err) {
       if (err instanceof ApiError && err.status === 400) {
         setErrors({ current: "Current password is incorrect." });
       } else {
-        setErrors({ general: err instanceof ApiError ? err.message : "Failed to change password." });
+        setErrors({
+          general: err instanceof ApiError ? err.message : "Failed to change password.",
+        });
       }
     } finally {
       setSaving(false);
@@ -123,7 +142,10 @@ export default function SecuritySettingsPage() {
           id="current"
           label="Current password"
           value={current}
-          onChange={(v) => { setCurrent(v); setErrors((p) => ({ ...p, current: "" })); }}
+          onChange={(v) => {
+            setCurrent(v);
+            setErrors((p) => ({ ...p, current: "" }));
+          }}
           disabled={saving}
           error={errors.current}
         />
@@ -131,7 +153,10 @@ export default function SecuritySettingsPage() {
           id="next"
           label="New password"
           value={next}
-          onChange={(v) => { setNext(v); setErrors((p) => ({ ...p, next: "" })); }}
+          onChange={(v) => {
+            setNext(v);
+            setErrors((p) => ({ ...p, next: "" }));
+          }}
           disabled={saving}
           error={errors.next}
         />
@@ -139,14 +164,15 @@ export default function SecuritySettingsPage() {
           id="confirm"
           label="Confirm new password"
           value={confirm}
-          onChange={(v) => { setConfirm(v); setErrors((p) => ({ ...p, confirm: "" })); }}
+          onChange={(v) => {
+            setConfirm(v);
+            setErrors((p) => ({ ...p, confirm: "" }));
+          }}
           disabled={saving}
           error={errors.confirm}
         />
 
-        {errors.general && (
-          <p className="text-sm text-red-500">{errors.general}</p>
-        )}
+        {errors.general && <p className="text-sm text-red-500">{errors.general}</p>}
         {success && (
           <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm text-emerald-700">
             {success}
@@ -166,9 +192,7 @@ export default function SecuritySettingsPage() {
 
       {/* Security info */}
       <div className="rounded-xl border border-gray-200 bg-white p-6 flex flex-col gap-3">
-        <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
-          Session
-        </h2>
+        <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Session</h2>
         <p className="text-sm text-gray-500">
           You are authenticated via an httpOnly JWT cookie. Your access token expires automatically.
           Sign out to invalidate your session immediately.

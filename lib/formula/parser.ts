@@ -1,6 +1,6 @@
 import type { FormulaToken } from "@/types/formula";
-import type { ASTNode } from "./types";
 import { tokenize } from "./tokenizer";
+import type { ASTNode } from "./types";
 
 /**
  * Recursive-descent parser that produces an ASTNode from a formula string.
@@ -30,7 +30,10 @@ export function parse(formula: string): ASTNode {
 
   function parseComparison(): ASTNode {
     let left = parseAddSub();
-    while (peek()?.type === "OPERATOR" && ["=", "<", ">", "<=", ">=", "<>", "!="].includes(peek()!.value)) {
+    while (
+      peek()?.type === "OPERATOR" &&
+      ["=", "<", ">", "<=", ">=", "<>", "!="].includes(peek()?.value)
+    ) {
       const op = consume().value;
       const right = parseAddSub();
       left = { type: "binary_op", op, left, right };
@@ -40,7 +43,7 @@ export function parse(formula: string): ASTNode {
 
   function parseAddSub(): ASTNode {
     let left = parseMulDiv();
-    while (peek()?.type === "OPERATOR" && (peek()!.value === "+" || peek()!.value === "-")) {
+    while (peek()?.type === "OPERATOR" && (peek()?.value === "+" || peek()?.value === "-")) {
       const op = consume().value;
       const right = parseMulDiv();
       left = { type: "binary_op", op, left, right };
@@ -50,7 +53,10 @@ export function parse(formula: string): ASTNode {
 
   function parseMulDiv(): ASTNode {
     let left = parsePower();
-    while (peek()?.type === "OPERATOR" && (peek()!.value === "*" || peek()!.value === "/" || peek()!.value === "%")) {
+    while (
+      peek()?.type === "OPERATOR" &&
+      (peek()?.value === "*" || peek()?.value === "/" || peek()?.value === "%")
+    ) {
       const op = consume().value;
       const right = parsePower();
       left = { type: "binary_op", op, left, right };
@@ -60,7 +66,7 @@ export function parse(formula: string): ASTNode {
 
   function parsePower(): ASTNode {
     let left = parseUnary();
-    while (peek()?.type === "OPERATOR" && peek()!.value === "^") {
+    while (peek()?.type === "OPERATOR" && peek()?.value === "^") {
       consume();
       const right = parseUnary();
       left = { type: "binary_op", op: "^", left, right };
@@ -69,7 +75,7 @@ export function parse(formula: string): ASTNode {
   }
 
   function parseUnary(): ASTNode {
-    if (peek()?.type === "OPERATOR" && peek()!.value === "-") {
+    if (peek()?.type === "OPERATOR" && peek()?.value === "-") {
       consume();
       const operand = parseUnary();
       return { type: "unary_op", op: "-", operand };

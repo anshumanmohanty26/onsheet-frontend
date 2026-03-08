@@ -1,7 +1,7 @@
 "use client";
 
-import { memo } from "react";
 import type { CellData, CellStyle } from "@/types/cell";
+import { memo } from "react";
 
 interface CellProps {
   cellRef: string;
@@ -26,9 +26,10 @@ function cellSpanCSS(style?: CellStyle): React.CSSProperties {
   return {
     fontWeight: style.bold ? "bold" : undefined,
     fontStyle: style.italic ? "italic" : undefined,
-    textDecoration: [style.underline && "underline", style.strikethrough && "line-through"]
-      .filter(Boolean)
-      .join(" ") || undefined,
+    textDecoration:
+      [style.underline && "underline", style.strikethrough && "line-through"]
+        .filter(Boolean)
+        .join(" ") || undefined,
     fontSize: style.fontSize,
     fontFamily: style.fontFamily,
     color: style.color,
@@ -40,7 +41,7 @@ function cellSpanCSS(style?: CellStyle): React.CSSProperties {
 
 /** Individual cell renderer, memoized to avoid unnecessary re-renders. */
 export const Cell = memo(function Cell({
-  cellRef: ref,
+  cellRef: _ref,
   data,
   width,
   isActive,
@@ -61,7 +62,12 @@ export const Cell = memo(function Cell({
       onMouseEnter={onMouseEnter}
       onDoubleClick={onDoubleClick}
     >
-      <span className={`block px-1 text-sm leading-[23px] ${data?.style?.wrapText ? "break-words whitespace-pre-wrap" : "truncate"}`} style={cellSpanCSS(data?.style)}>{display}</span>
+      <span
+        className={`block px-1 text-sm leading-[23px] ${data?.style?.wrapText ? "break-words whitespace-pre-wrap" : "truncate"}`}
+        style={cellSpanCSS(data?.style)}
+      >
+        {display}
+      </span>
     </td>
   );
 });

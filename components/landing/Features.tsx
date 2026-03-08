@@ -83,10 +83,18 @@ const accessItems = [
 
 /* ─── Scatter data typed properly ─── */
 const scatterPoints: [number, number, string][] = [
-  [30, 95, "#34d399"], [55, 70, "#34d399"], [80, 105, "#34d399"],
-  [105, 50, "#34d399"], [135, 85, "#a78bfa"], [160, 42, "#a78bfa"],
-  [178, 100, "#f87171"], [200, 62, "#f87171"], [220, 80, "#f87171"],
-  [242, 45, "#34d399"], [262, 72, "#a78bfa"], [278, 35, "#f87171"],
+  [30, 95, "#34d399"],
+  [55, 70, "#34d399"],
+  [80, 105, "#34d399"],
+  [105, 50, "#34d399"],
+  [135, 85, "#a78bfa"],
+  [160, 42, "#a78bfa"],
+  [178, 100, "#f87171"],
+  [200, 62, "#f87171"],
+  [220, 80, "#f87171"],
+  [242, 45, "#34d399"],
+  [262, 72, "#a78bfa"],
+  [278, 35, "#f87171"],
 ];
 
 const scatterLegend: [string, string][] = [
@@ -107,22 +115,12 @@ function AIVisual() {
         </p>
         <svg viewBox="0 0 300 120" className="w-full" aria-hidden="true">
           {scatterPoints.map(([cx, cy, fill], i) => (
-            <circle
-              key={i}
-              cx={cx}
-              cy={cy}
-              r="6"
-              fill={fill}
-              fillOpacity="0.65"
-            />
+            <circle key={i} cx={cx} cy={cy} r="6" fill={fill} fillOpacity="0.65" />
           ))}
         </svg>
         <div className="flex flex-wrap gap-3 mt-2">
           {scatterLegend.map(([c, l]) => (
-            <span
-              key={l}
-              className="flex items-center gap-1.5 text-[9px] text-gray-500"
-            >
+            <span key={l} className="flex items-center gap-1.5 text-[9px] text-gray-500">
               <span
                 className="w-2 h-2 rounded-full flex-shrink-0"
                 style={{ backgroundColor: c }}
@@ -141,16 +139,10 @@ function AIVisual() {
             <span className="text-emerald-600 text-sm" aria-hidden="true">
               &#10022;
             </span>
-            <span className="text-xs font-semibold text-gray-800">
-              OnSheet AI
-            </span>
+            <span className="text-xs font-semibold text-gray-800">OnSheet AI</span>
           </div>
-          <p className="text-sm font-medium text-emerald-600 mb-0.5">
-            Hello!
-          </p>
-          <p className="text-xs text-gray-600 mb-3">
-            How can I help with your data today?
-          </p>
+          <p className="text-sm font-medium text-emerald-600 mb-0.5">Hello!</p>
+          <p className="text-xs text-gray-600 mb-3">How can I help with your data today?</p>
           <div className="space-y-2">
             {[
               { label: "Generate a chart", icon: "📊" },
@@ -254,8 +246,8 @@ function CreateVisual() {
           </span>
           <p className="text-xs text-emerald-800">
             <span className="font-semibold">OnSheet AI: </span>
-            Create a revenue tracker for the latest summer sale and include ID,
-            customer and order number.
+            Create a revenue tracker for the latest summer sale and include ID, customer and order
+            number.
           </p>
         </div>
       </div>
@@ -324,8 +316,8 @@ function CollabVisual() {
                   ri === 0 || ci === 0
                     ? "bg-gray-50 font-medium text-gray-500 w-10 text-center"
                     : ri === 2 && ci === 3
-                    ? "flex-1 bg-purple-50 text-purple-700 font-medium ring-1 ring-inset ring-purple-200"
-                    : "flex-1 text-gray-700"
+                      ? "flex-1 bg-purple-50 text-purple-700 font-medium ring-1 ring-inset ring-purple-200"
+                      : "flex-1 text-gray-700"
                 }`}
               >
                 {cell}
@@ -355,7 +347,15 @@ function CollabVisual() {
             aria-label="Close comments"
             className="text-gray-400 hover:text-gray-600 transition-colors"
           >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              aria-hidden="true"
+            >
               <line x1="18" y1="6" x2="6" y2="18" />
               <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
@@ -397,12 +397,29 @@ function AccessVisual() {
         <span className="w-2.5 h-2.5 rounded-full bg-green-400" aria-hidden="true" />
         {/* Address bar */}
         <div className="flex-1 mx-3 rounded-md bg-white border border-gray-200 flex items-center gap-2 px-3 py-1">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" aria-hidden="true">
+          <svg
+            width="10"
+            height="10"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#6b7280"
+            strokeWidth="2"
+            aria-hidden="true"
+          >
             <circle cx="12" cy="12" r="10" />
             <path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20" />
           </svg>
           <span className="text-[10px] text-gray-400 select-none">app.onsheet.io/sheets</span>
-          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" className="ml-auto" aria-hidden="true">
+          <svg
+            width="8"
+            height="8"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#9ca3af"
+            strokeWidth="2"
+            className="ml-auto"
+            aria-hidden="true"
+          >
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
           </svg>
         </div>
@@ -453,7 +470,15 @@ function AccessVisual() {
         </div>
         {/* Sync indicator */}
         <div className="mt-4 flex items-center gap-2 text-[10px] text-emerald-600">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
+          <svg
+            width="10"
+            height="10"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            aria-hidden="true"
+          >
             <polyline points="23 4 23 10 17 10" />
             <polyline points="1 20 1 14 7 14" />
             <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
@@ -501,7 +526,15 @@ function SecurityVisual() {
       {/* Header */}
       <div className="flex items-center gap-3 border-b border-gray-100 bg-gray-50 px-5 py-4">
         <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center flex-shrink-0">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2" aria-hidden="true">
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#059669"
+            strokeWidth="2"
+            aria-hidden="true"
+          >
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
           </svg>
         </div>
@@ -518,7 +551,7 @@ function SecurityVisual() {
       {/* Checklist */}
       <div className="divide-y divide-gray-100">
         {[
-          "Encryption at rest &#38; in transit",
+          "Encryption at rest & in transit",
           "Role-based access control",
           "SAML 2.0 single sign-on",
           "Audit log retention — 12 months",
@@ -526,21 +559,33 @@ function SecurityVisual() {
           "99.9% uptime SLA",
         ].map((item) => (
           <div key={item} className="flex items-center gap-3 px-5 py-3">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-emerald-500 flex-shrink-0" aria-hidden="true">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              className="text-emerald-500 flex-shrink-0"
+              aria-hidden="true"
+            >
               <circle cx="12" cy="12" r="10" fill="#d1fae5" />
-              <path d="M8 12l3 3 5-5" stroke="#059669" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              <path
+                d="M8 12l3 3 5-5"
+                stroke="#059669"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
             </svg>
-            <span
-              className="text-xs text-gray-700"
-              dangerouslySetInnerHTML={{ __html: item }}
-            />
+            <span className="text-xs text-gray-700">{item}</span>
           </div>
         ))}
       </div>
 
       {/* Badges */}
       <div className="border-t border-gray-100 bg-gray-50 px-5 py-4">
-        <p className="text-[10px] font-medium uppercase tracking-widest text-gray-400 mb-3">Compliance</p>
+        <p className="text-[10px] font-medium uppercase tracking-widest text-gray-400 mb-3">
+          Compliance
+        </p>
         <div className="grid grid-cols-2 gap-2">
           {securityBadges.map((b) => (
             <div key={b.label} className="rounded-xl border border-gray-200 bg-white px-3 py-2.5">
@@ -582,9 +627,7 @@ function FeatureList({
             {item.title}
           </p>
           {active === i && (
-            <p className="mt-2 text-sm text-gray-600 leading-relaxed">
-              {item.description}
-            </p>
+            <p className="mt-2 text-sm text-gray-600 leading-relaxed">{item.description}</p>
           )}
         </button>
       ))}
@@ -607,7 +650,6 @@ export function Features() {
 
   return (
     <div id="features">
-
       {/* ── Sticky tab nav ── */}
       <div className="sticky top-16 z-30 bg-white/95 backdrop-blur-sm border-b border-gray-100 py-3">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -645,9 +687,7 @@ export function Features() {
               <AIVisual />
             </div>
             <div className="lg:w-1/2">
-              <p className="text-sm font-medium text-emerald-600 mb-3">
-                &#10022; AI Features
-              </p>
+              <p className="text-sm font-medium text-emerald-600 mb-3">&#10022; AI Features</p>
               <h2
                 id="ai-heading"
                 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl"
@@ -657,10 +697,9 @@ export function Features() {
                 with AI in OnSheet
               </h2>
               <p className="mt-5 text-base text-gray-600 leading-7">
-                With OnSheet AI you can quickly create trackers, tables, and
-                advanced data visualisations using plain-English prompts. Ask AI
-                to create formulas, analyse your data, and surface valuable
-                insights — no pivot tables required.
+                With OnSheet AI you can quickly create trackers, tables, and advanced data
+                visualisations using plain-English prompts. Ask AI to create formulas, analyse your
+                data, and surface valuable insights — no pivot tables required.
               </p>
               <a
                 href="/signup"
@@ -748,7 +787,8 @@ export function Features() {
               ready in seconds
             </h2>
             <p className="mt-3 text-base text-gray-500">
-              No downloads, no installs. OnSheet runs entirely in the browser &mdash; open a link and start working.
+              No downloads, no installs. OnSheet runs entirely in the browser &mdash; open a link
+              and start working.
             </p>
           </div>
           <div className="flex flex-col lg:flex-row gap-10 lg:items-start">
@@ -788,7 +828,6 @@ export function Features() {
           </div>
         </div>
       </section>
-
     </div>
   );
 }

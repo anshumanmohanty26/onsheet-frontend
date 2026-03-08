@@ -1,7 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import type { SharedWorkbook } from "@/services/workbookService";
+import { useRouter } from "next/navigation";
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-US", {
@@ -37,6 +37,7 @@ export function SharedWorkbookCard({ workbook }: SharedWorkbookCardProps) {
     <div className="group relative flex flex-col rounded-xl border border-gray-200 bg-white shadow-sm hover:shadow-md hover:border-blue-300 transition-all cursor-pointer">
       {/* Thumbnail */}
       <button
+        type="button"
         onClick={() => router.push(`/sheet/${workbook.id}`)}
         className="h-36 rounded-t-xl bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center focus:outline-none"
         aria-label={`Open ${workbook.name}`}

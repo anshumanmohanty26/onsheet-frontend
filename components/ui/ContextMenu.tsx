@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef } from "react";
 
 export interface ContextMenuItem {
   label: string;
@@ -55,15 +55,17 @@ export function ContextMenu({ visible, x, y, items, onClose }: ContextMenuProps)
         ) : (
           <button
             key={i}
+            type="button"
             role="menuitem"
             disabled={item.disabled}
-            onClick={() => { item.onClick(); onClose(); }}
+            onClick={() => {
+              item.onClick();
+              onClose();
+            }}
             className="w-full flex items-center justify-between px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-100 disabled:text-gray-300 disabled:pointer-events-none transition-colors"
           >
             <span>{item.label}</span>
-            {item.shortcut && (
-              <span className="text-gray-400 ml-4">{item.shortcut}</span>
-            )}
+            {item.shortcut && <span className="text-gray-400 ml-4">{item.shortcut}</span>}
           </button>
         ),
       )}

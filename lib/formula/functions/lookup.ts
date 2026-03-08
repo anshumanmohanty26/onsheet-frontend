@@ -1,4 +1,4 @@
-import type { FormulaFn, FormulaValue } from "../types";
+import type { FormulaFn } from "../types";
 
 /**
  * INDEX(array, row_num, [col_num])

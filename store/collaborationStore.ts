@@ -23,10 +23,7 @@ export const initialCollabState: CollaborationState = {
   localPeerId: "", // must be set at mount time
 };
 
-export function collabReducer(
-  state: CollaborationState,
-  action: CollabAction,
-): CollaborationState {
+export function collabReducer(state: CollaborationState, action: CollabAction): CollaborationState {
   switch (action.type) {
     case "SET_CONNECTED":
       return { ...state, connected: action.connected };

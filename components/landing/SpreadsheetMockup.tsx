@@ -101,14 +101,16 @@ export function SpreadsheetMockup() {
           F6
         </span>
         <span className="text-gray-300 dark:text-gray-700">|</span>
-        <span className="text-xs font-mono text-violet-600 dark:text-violet-400">
-          =SUM(B2:B4)
-        </span>
+        <span className="text-xs font-mono text-violet-600 dark:text-violet-400">=SUM(B2:B4)</span>
       </div>
 
       {/* Grid */}
       <div className="overflow-x-auto">
-        <table className="w-full text-xs border-collapse" role="grid" aria-label="Spreadsheet preview">
+        <table
+          className="w-full text-xs border-collapse"
+          role="grid"
+          aria-label="Spreadsheet preview"
+        >
           {/* Column headers */}
           <thead>
             <tr>
@@ -134,8 +136,8 @@ export function SpreadsheetMockup() {
                   rowIdx === 0
                     ? "bg-gray-50/80 dark:bg-gray-800/40"
                     : rowIdx % 2 === 0
-                    ? "bg-gray-50/30 dark:bg-transparent"
-                    : "bg-white dark:bg-gray-900"
+                      ? "bg-gray-50/30 dark:bg-transparent"
+                      : "bg-white dark:bg-gray-900"
                 }
               >
                 {row.map((cell, cellIdx) => (
@@ -147,9 +149,7 @@ export function SpreadsheetMockup() {
                         : "text-gray-700 dark:text-gray-300"
                     } ${
                       // highlight active cell
-                      rowIdx === 5 && cellIdx === 6
-                        ? "ring-2 ring-inset ring-emerald-500"
-                        : ""
+                      rowIdx === 5 && cellIdx === 6 ? "ring-2 ring-inset ring-emerald-500" : ""
                     } ${cell.style ?? ""}`}
                   >
                     {cell.value}

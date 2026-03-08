@@ -23,15 +23,13 @@ async function tryRefresh(): Promise<boolean> {
   })
     .then((r) => r.ok)
     .catch(() => false)
-    .finally(() => { refreshPromise = null; });
+    .finally(() => {
+      refreshPromise = null;
+    });
   return refreshPromise;
 }
 
-async function request<T>(
-  path: string,
-  init: RequestInit = {},
-  isRetry = false,
-): Promise<T> {
+async function request<T>(path: string, init: RequestInit = {}, isRetry = false): Promise<T> {
   const res = await fetch(`${env.apiUrl}${path}`, {
     ...init,
     credentials: "include", // send httpOnly cookies
@@ -67,13 +65,8 @@ async function request<T>(
   const body = await res.json().catch(() => ({}));
 
   if (!res.ok) {
-    const message =
-      (body as { message?: string | string[] }).message ?? res.statusText;
-    throw new ApiError(
-      res.status,
-      Array.isArray(message) ? message.join(", ") : message,
-      body,
-    );
+    const message = (body as { message?: string | string[] }).message ?? res.statusText;
+    throw new ApiError(res.status, Array.isArray(message) ? message.join(", ") : message, body);
   }
 
   // Backend wraps responses: { success, data }
@@ -81,8 +74,7 @@ async function request<T>(
 }
 
 export const api = {
-  get: <T>(path: string, init?: RequestInit) =>
-    request<T>(path, { ...init, method: "GET" }),
+  get: <T>(path: string, init?: RequestInit) => request<T>(path, { ...init, method: "GET" }),
 
   post: <T>(path: string, body?: unknown, init?: RequestInit) =>
     request<T>(path, {
@@ -105,6 +97,5 @@ export const api = {
       body: body !== undefined ? JSON.stringify(body) : undefined,
     }),
 
-  delete: <T>(path: string, init?: RequestInit) =>
-    request<T>(path, { ...init, method: "DELETE" }),
+  delete: <T>(path: string, init?: RequestInit) => request<T>(path, { ...init, method: "DELETE" }),
 };

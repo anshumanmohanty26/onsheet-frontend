@@ -1,5 +1,5 @@
-import { useCallback, useRef, useState } from "react";
 import { GRID } from "@/constants/defaults";
+import { useCallback, useRef, useState } from "react";
 
 interface ResizeState {
   type: "col" | "row";
@@ -18,21 +18,15 @@ export function useResize({ onColumnResize, onRowResize }: UseResizeOptions) {
   const resizeRef = useRef<ResizeState | null>(null);
   const [resizing, setResizing] = useState(false);
 
-  const startColumnResize = useCallback(
-    (col: number, startX: number, currentWidth: number) => {
-      resizeRef.current = { type: "col", index: col, startPos: startX, startSize: currentWidth };
-      setResizing(true);
-    },
-    [],
-  );
+  const startColumnResize = useCallback((col: number, startX: number, currentWidth: number) => {
+    resizeRef.current = { type: "col", index: col, startPos: startX, startSize: currentWidth };
+    setResizing(true);
+  }, []);
 
-  const startRowResize = useCallback(
-    (row: number, startY: number, currentHeight: number) => {
-      resizeRef.current = { type: "row", index: row, startPos: startY, startSize: currentHeight };
-      setResizing(true);
-    },
-    [],
-  );
+  const startRowResize = useCallback((row: number, startY: number, currentHeight: number) => {
+    resizeRef.current = { type: "row", index: row, startPos: startY, startSize: currentHeight };
+    setResizing(true);
+  }, []);
 
   const onPointerMove = useCallback(
     (e: PointerEvent) => {
@@ -40,11 +34,17 @@ export function useResize({ onColumnResize, onRowResize }: UseResizeOptions) {
       if (!r) return;
       if (r.type === "col") {
         const delta = e.clientX - r.startPos;
-        const newW = Math.max(GRID.MIN_COL_WIDTH, Math.min(GRID.MAX_COL_WIDTH, r.startSize + delta));
+        const newW = Math.max(
+          GRID.MIN_COL_WIDTH,
+          Math.min(GRID.MAX_COL_WIDTH, r.startSize + delta),
+        );
         onColumnResize(r.index, newW);
       } else {
         const delta = e.clientY - r.startPos;
-        const newH = Math.max(GRID.MIN_ROW_HEIGHT, Math.min(GRID.MAX_ROW_HEIGHT, r.startSize + delta));
+        const newH = Math.max(
+          GRID.MIN_ROW_HEIGHT,
+          Math.min(GRID.MAX_ROW_HEIGHT, r.startSize + delta),
+        );
         onRowResize(r.index, newH);
       }
     },

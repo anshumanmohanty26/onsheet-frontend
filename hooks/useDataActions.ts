@@ -1,6 +1,6 @@
-import { useCallback } from "react";
 import type { SpreadsheetAction } from "@/store/spreadsheetStore";
 import type { CellCoord } from "@/types/selection";
+import { useCallback } from "react";
 
 interface Options {
   active: CellCoord | null;

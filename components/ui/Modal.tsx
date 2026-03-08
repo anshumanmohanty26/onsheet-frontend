@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, type ReactNode } from "react";
+import { type ReactNode, useEffect } from "react";
 
 interface ModalProps {
   open: boolean;
@@ -41,11 +41,18 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-base font-semibold text-gray-900">{title}</h2>
               <button
+                type="button"
                 onClick={onClose}
                 className="rounded-full p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-all duration-150"
                 aria-label="Close"
               >
-                <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <svg
+                  className="size-4"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                >
                   <path d="M18 6L6 18M6 6l12 12" />
                 </svg>
               </button>
@@ -57,4 +64,3 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
     </div>
   );
 }
-

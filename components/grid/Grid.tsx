@@ -1,16 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { GRID } from "@/constants/defaults";
+import { useResize } from "@/hooks/useResize";
+import { useVirtualization } from "@/hooks/useVirtualization";
 import { cellRef } from "@/lib/utils/coordinates";
 import { cellInRange } from "@/lib/utils/range";
-import { useVirtualization } from "@/hooks/useVirtualization";
-import { useResize } from "@/hooks/useResize";
-import { ColumnHeader } from "./ColumnHeader";
-import { RowHeader } from "./RowHeader";
-import { GRID } from "@/constants/defaults";
+import type { SpreadsheetState } from "@/types";
 import type { CellMap, CellStyle } from "@/types/cell";
 import type { CellCoord, SelectionRange } from "@/types/selection";
-import type { SpreadsheetState } from "@/types";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ColumnHeader } from "./ColumnHeader";
+import { RowHeader } from "./RowHeader";
 
 interface GridProps {
   cells: CellMap;
@@ -24,7 +24,7 @@ interface GridProps {
   selection: SelectionRange | null;
   editingRef: string | null;
   editValue: string;
-  onCellClick: (coord: CellCoord) => void;
+  onCellClick: (coord: CellCoord, shiftKey: boolean) => void;
   onCellDoubleClick: (coord: CellCoord) => void;
   onEditChange: (value: string) => void;
   onEditCommit: (value: string, move?: { dr: number; dc: number }) => void;
@@ -34,6 +34,10 @@ interface GridProps {
   onColumnResize?: (col: number, width: number) => void;
   /** Called when user resizes a row. */
   onRowResize?: (row: number, height: number) => void;
+  /** Called when user clicks a column header (select entire column). */
+  onColumnSelect?: (col: number, shiftKey: boolean) => void;
+  /** Called when user clicks a row header (select entire row). */
+  onRowSelect?: (row: number, shiftKey: boolean) => void;
   /** Called with the right-clicked cell coordinate. */
   onContextMenu?: (e: React.MouseEvent, coord: CellCoord) => void;
   /** Called when the user scrolls near the bottom — lets parent extend totalRows. */
@@ -68,24 +72,24 @@ function applyCellStyle(style?: CellStyle): React.CSSProperties {
     // textAlign handles wrapped-text line alignment; justifyContent drives
     // the flex-container positioning so alignment is visually correct.
     textAlign: hAlign,
-    justifyContent:
-      hAlign === "center" ? "center" : hAlign === "right" ? "flex-end" : "flex-start",
+    justifyContent: hAlign === "center" ? "center" : hAlign === "right" ? "flex-end" : "flex-start",
   };
 }
 
 function formatDisplay(value: string, numberFormat?: string): string {
   if (!numberFormat || numberFormat === "auto" || numberFormat === "plain") return value;
-  const num = parseFloat(value);
-  if (isNaN(num)) return value;
+  const num = Number.parseFloat(value);
+  if (Number.isNaN(num)) return value;
   switch (numberFormat) {
     case "number":
       return num.toLocaleString(undefined, { maximumFractionDigits: 2 });
     case "currency":
       return new Intl.NumberFormat(undefined, { style: "currency", currency: "USD" }).format(num);
     case "percent":
-      return new Intl.NumberFormat(undefined, { style: "percent", minimumFractionDigits: 0 }).format(
-        num / 100,
-      );
+      return new Intl.NumberFormat(undefined, {
+        style: "percent",
+        minimumFractionDigits: 0,
+      }).format(num / 100);
     default:
       return value;
   }
@@ -109,6 +113,8 @@ export function Grid({
   onSelectionDrag,
   onColumnResize,
   onRowResize,
+  onColumnSelect,
+  onRowSelect,
   onContextMenu,
   onLoadMore,
   showGridlines = true,
@@ -136,20 +142,15 @@ export function Grid({
   }, []);
 
   // ── Virtualization ────────────────────────────────────────────────────────
-  const {
-    visibleRange,
-    totalContentHeight,
-    totalContentWidth,
-    onScroll,
-    scrollTop,
-  } = useVirtualization({
-    totalRows,
-    totalCols,
-    columnWidths,
-    rowHeights,
-    viewportWidth: viewportSize.width,
-    viewportHeight: viewportSize.height,
-  });
+  const { visibleRange, totalContentHeight, totalContentWidth, onScroll, scrollTop } =
+    useVirtualization({
+      totalRows,
+      totalCols,
+      columnWidths,
+      rowHeights,
+      viewportWidth: viewportSize.width,
+      viewportHeight: viewportSize.height,
+    });
 
   const { startRow, endRow, startCol, endCol, offsetTop, offsetLeft } = visibleRange;
 
@@ -162,11 +163,10 @@ export function Grid({
   }, [scrollTop, viewportSize.height, totalContentHeight, onLoadMore]);
 
   // ── Resize hook ───────────────────────────────────────────────────────────
-  const { resizing, startColumnResize, startRowResize, onPointerMove, onPointerUp } =
-    useResize({
-      onColumnResize: onColumnResize ?? (() => {}),
-      onRowResize: onRowResize ?? (() => {}),
-    });
+  const { resizing, startColumnResize, startRowResize, onPointerMove, onPointerUp } = useResize({
+    onColumnResize: onColumnResize ?? (() => {}),
+    onRowResize: onRowResize ?? (() => {}),
+  });
 
   // Attach document-level pointer listeners while a resize is in progress
   useEffect(() => {
@@ -196,10 +196,16 @@ export function Grid({
   ).reduce((a, h) => a + h, 0);
 
   // Top spacer must exclude frozen row heights
-  const frozenHeight = Array.from({ length: frozenRows }, (_, i) => rowHeights[i] ?? GRID.DEFAULT_ROW_HEIGHT).reduce((a, h) => a + h, 0);
+  const frozenHeight = Array.from(
+    { length: frozenRows },
+    (_, i) => rowHeights[i] ?? GRID.DEFAULT_ROW_HEIGHT,
+  ).reduce((a, h) => a + h, 0);
   const effectiveOffsetTop = Math.max(0, offsetTop - frozenHeight);
 
-  const bottomSpacerHeight = Math.max(0, totalContentHeight - frozenHeight - effectiveOffsetTop - renderedRowsHeight);
+  const bottomSpacerHeight = Math.max(
+    0,
+    totalContentHeight - frozenHeight - effectiveOffsetTop - renderedRowsHeight,
+  );
 
   // ── Selection helpers ─────────────────────────────────────────────────────
   const isSelected = useCallback(
@@ -207,107 +213,192 @@ export function Grid({
     [selection],
   );
 
-  // ── Empty handlers for header selects (future: select full col/row) ───────
-  const noop = useCallback(() => {}, []);
-
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div
       ref={containerRef}
       className="flex-1 overflow-auto relative select-none"
       onScroll={onScroll}
-      onMouseLeave={() => { isDragging.current = false; }}
+      onMouseLeave={() => {
+        isDragging.current = false;
+      }}
       style={zoom !== 100 ? { zoom: zoom / 100 } : undefined}
     >
-      <table
-        className="border-collapse table-fixed"
-        style={{ userSelect: "none" }}
-      >
+      <table className="border-collapse table-fixed" style={{ userSelect: "none" }}>
         {/* column headers */}
         {showHeaders && (
-        <thead>
-          <tr>
-            <th
-              className="sticky top-0 left-0 z-20 bg-gray-100 border border-gray-300"
-              style={{ width: GRID.ROW_HEADER_WIDTH, minWidth: GRID.ROW_HEADER_WIDTH }}
-            />
-            {offsetLeft > 0 && (
-              <th aria-hidden style={{ width: offsetLeft, minWidth: offsetLeft, padding: 0, border: "none" }} />
-            )}
-            {Array.from({ length: endCol - startCol + 1 }, (_, i) => {
-              const ci = startCol + i;
-              return (
-                <ColumnHeader key={ci} col={ci} width={columnWidths[ci] ?? GRID.DEFAULT_COL_WIDTH} onResizeStart={startColumnResize} onColumnSelect={noop} />
-              );
-            })}
-            {rightSpacerWidth > 0 && (
-              <th aria-hidden style={{ width: rightSpacerWidth, padding: 0, border: "none" }} />
-            )}
-          </tr>
-        </thead>
+          <thead>
+            <tr>
+              <th
+                className="sticky top-0 left-0 z-20 bg-gray-100 border border-gray-300"
+                style={{ width: GRID.ROW_HEADER_WIDTH, minWidth: GRID.ROW_HEADER_WIDTH }}
+              />
+              {offsetLeft > 0 && (
+                <th
+                  aria-hidden
+                  style={{ width: offsetLeft, minWidth: offsetLeft, padding: 0, border: "none" }}
+                />
+              )}
+              {Array.from({ length: endCol - startCol + 1 }, (_, i) => {
+                const ci = startCol + i;
+                return (
+                  <ColumnHeader
+                    key={ci}
+                    col={ci}
+                    width={columnWidths[ci] ?? GRID.DEFAULT_COL_WIDTH}
+                    onResizeStart={startColumnResize}
+                    onColumnSelect={(col, shiftKey) => onColumnSelect?.(col, shiftKey)}
+                  />
+                );
+              })}
+              {rightSpacerWidth > 0 && (
+                <th aria-hidden style={{ width: rightSpacerWidth, padding: 0, border: "none" }} />
+              )}
+            </tr>
+          </thead>
         )}
 
         <tbody>
           {/* Frozen rows */}
-          {frozenRows > 0 && Array.from({ length: frozenRows }, (_, ri) => {
-            const row = ri;
-            const rowH = rowHeights[row] ?? GRID.DEFAULT_ROW_HEIGHT;
-            const stickyTop = showHeaders ? GRID.DEFAULT_ROW_HEIGHT : 0;
-            return (
-              <tr key={`frozen-${row}`} style={{ height: rowH, position: "sticky", top: stickyTop, zIndex: 7 }}>
-                {showHeaders && <RowHeader row={row} height={rowH} onResizeStart={startRowResize} onRowSelect={noop} />}
-                {offsetLeft > 0 && <td aria-hidden style={{ width: offsetLeft, minWidth: offsetLeft, padding: 0, border: "none" }} />}
-                {Array.from({ length: endCol - startCol + 1 }, (_, ci) => {
-                  const col = startCol + ci;
-                  const w = columnWidths[col] ?? GRID.DEFAULT_COL_WIDTH;
-                  const ref = cellRef(row, col);
-                  const cell = cells[ref];
-                  const isActiveCell = active?.row === row && active?.col === col;
-                  const isEdit = editingRef === ref;
-                  const activeAndEditing = isActiveCell && editingRef !== null;
-                  const selected = isSelected(row, col);
-                  const display = activeAndEditing ? editValue : formatDisplay(cell?.computed ?? cell?.raw ?? "", cell?.style?.numberFormat);
-                  return (
-                    <td key={col}
-                      className={[showGridlines ? "border border-gray-200" : "border border-transparent", "p-0 overflow-hidden relative bg-amber-50/60", isActiveCell ? "outline outline-2 outline-emerald-500 outline-offset-[-1px] z-10" : "", selected && !isActiveCell ? "bg-emerald-50" : ""].filter(Boolean).join(" ")}
-                      style={{ width: w, maxWidth: w, cursor: "cell", backgroundColor: cell?.style?.backgroundColor }}
-                      onMouseDown={(e) => { if (e.button !== 0) return; isDragging.current = true; onCellClick({ row, col }); }}
-                      onMouseEnter={() => { if (isDragging.current) onSelectionDrag({ row, col }); }}
-                      onMouseUp={() => { isDragging.current = false; }}
-                      onDoubleClick={() => onCellDoubleClick({ row, col })}
-                      onContextMenu={onContextMenu ? (e) => onContextMenu(e, { row, col }) : undefined}
-                    >
-                      {isEdit ? (
-                        <input className="absolute inset-0 w-full h-full px-1 text-sm text-gray-900 outline-none bg-white z-20" value={editValue} onChange={(e) => onEditChange(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); onEditCommit(editValue, { dr: 1, dc: 0 }); } else if (e.key === "Tab") { e.preventDefault(); onEditCommit(editValue, { dr: 0, dc: e.shiftKey ? -1 : 1 }); } else if (e.key === "Escape") { onEditCancel(); } }} onBlur={() => onEditCommit(editValue)} autoFocus spellCheck={false} />
-                      ) : (
-                        <div
-                          className={`px-1 text-sm text-gray-800 h-full flex ${
-                            cell?.style?.wrapText
-                              ? "items-start whitespace-pre-wrap break-words overflow-auto"
-                              : "items-center truncate"
-                          }`}
-                          style={applyCellStyle(cell?.style)}
-                        >{display}</div>
-                      )}
-                      {commentedCells?.has(ref) && (
-                        <button
-                          className="absolute top-0 right-0 w-0 h-0 border-t-[8px] border-t-orange-400 border-l-[8px] border-l-transparent cursor-pointer z-[5] hover:border-t-orange-500"
-                          title="View comments"
-                          onClick={(e) => { e.stopPropagation(); onCommentClick?.({ row, col }); }}
-                        />
-                      )}
-                    </td>
-                  );
-                })}
-                {rightSpacerWidth > 0 && <td aria-hidden style={{ width: rightSpacerWidth, padding: 0, border: "none" }} />}
-              </tr>
-            );
-          })}
+          {frozenRows > 0 &&
+            Array.from({ length: frozenRows }, (_, ri) => {
+              const row = ri;
+              const rowH = rowHeights[row] ?? GRID.DEFAULT_ROW_HEIGHT;
+              const stickyTop = showHeaders ? GRID.DEFAULT_ROW_HEIGHT : 0;
+              return (
+                <tr
+                  key={`frozen-${row}`}
+                  style={{ height: rowH, position: "sticky", top: stickyTop, zIndex: 7 }}
+                >
+                  {showHeaders && (
+                    <RowHeader
+                      row={row}
+                      height={rowH}
+                      onResizeStart={startRowResize}
+                      onRowSelect={(r, shiftKey) => onRowSelect?.(r, shiftKey)}
+                    />
+                  )}
+                  {offsetLeft > 0 && (
+                    <td
+                      aria-hidden
+                      style={{
+                        width: offsetLeft,
+                        minWidth: offsetLeft,
+                        padding: 0,
+                        border: "none",
+                      }}
+                    />
+                  )}
+                  {Array.from({ length: endCol - startCol + 1 }, (_, ci) => {
+                    const col = startCol + ci;
+                    const w = columnWidths[col] ?? GRID.DEFAULT_COL_WIDTH;
+                    const ref = cellRef(row, col);
+                    const cell = cells[ref];
+                    const isActiveCell = active?.row === row && active?.col === col;
+                    const isEdit = editingRef === ref;
+                    const activeAndEditing = isActiveCell && editingRef !== null;
+                    const selected = isSelected(row, col);
+                    const display = activeAndEditing
+                      ? editValue
+                      : formatDisplay(cell?.computed ?? cell?.raw ?? "", cell?.style?.numberFormat);
+                    return (
+                      <td
+                        key={col}
+                        className={[
+                          showGridlines ? "border border-gray-200" : "border border-transparent",
+                          "p-0 overflow-hidden relative bg-amber-50/60",
+                          isActiveCell
+                            ? "outline outline-2 outline-emerald-500 outline-offset-[-1px] z-10"
+                            : "",
+                          selected && !isActiveCell ? "bg-emerald-50" : "",
+                        ]
+                          .filter(Boolean)
+                          .join(" ")}
+                        style={{
+                          width: w,
+                          maxWidth: w,
+                          cursor: "cell",
+                          backgroundColor: cell?.style?.backgroundColor,
+                        }}
+                        onMouseDown={(e) => {
+                          if (e.button !== 0) return;
+                          isDragging.current = true;
+                          onCellClick({ row, col }, e.shiftKey);
+                        }}
+                        onMouseEnter={() => {
+                          if (isDragging.current) onSelectionDrag({ row, col });
+                        }}
+                        onMouseUp={() => {
+                          isDragging.current = false;
+                        }}
+                        onDoubleClick={() => onCellDoubleClick({ row, col })}
+                        onContextMenu={
+                          onContextMenu ? (e) => onContextMenu(e, { row, col }) : undefined
+                        }
+                      >
+                        {isEdit ? (
+                          <input
+                            className="absolute inset-0 w-full h-full px-1 text-sm text-gray-900 outline-none bg-white z-20"
+                            value={editValue}
+                            onChange={(e) => onEditChange(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                onEditCommit(editValue, { dr: 1, dc: 0 });
+                              } else if (e.key === "Tab") {
+                                e.preventDefault();
+                                onEditCommit(editValue, { dr: 0, dc: e.shiftKey ? -1 : 1 });
+                              } else if (e.key === "Escape") {
+                                onEditCancel();
+                              }
+                            }}
+                            onBlur={() => onEditCommit(editValue)}
+                            spellCheck={false}
+                          />
+                        ) : (
+                          <div
+                            className={`px-1 text-sm text-gray-800 h-full flex ${
+                              cell?.style?.wrapText
+                                ? "items-start whitespace-pre-wrap break-words overflow-auto"
+                                : "items-center truncate"
+                            }`}
+                            style={applyCellStyle(cell?.style)}
+                          >
+                            {display}
+                          </div>
+                        )}
+                        {commentedCells?.has(ref) && (
+                          <button
+                            type="button"
+                            className="absolute top-0 right-0 w-0 h-0 border-t-[8px] border-t-orange-400 border-l-[8px] border-l-transparent cursor-pointer z-[5] hover:border-t-orange-500"
+                            title="View comments"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onCommentClick?.({ row, col });
+                            }}
+                          />
+                        )}
+                      </td>
+                    );
+                  })}
+                  {rightSpacerWidth > 0 && (
+                    <td
+                      aria-hidden
+                      style={{ width: rightSpacerWidth, padding: 0, border: "none" }}
+                    />
+                  )}
+                </tr>
+              );
+            })}
 
           {/* Top spacer */}
           {effectiveOffsetTop > 0 && (
             <tr style={{ height: effectiveOffsetTop }}>
-              <td aria-hidden colSpan={endCol - startCol + 4} style={{ padding: 0, border: "none" }} />
+              <td
+                aria-hidden
+                colSpan={endCol - startCol + 4}
+                style={{ padding: 0, border: "none" }}
+              />
             </tr>
           )}
 
@@ -318,7 +409,12 @@ export function Grid({
             return (
               <tr key={row} style={{ height: rowH }}>
                 {showHeaders && (
-                  <RowHeader row={row} height={rowH} onResizeStart={startRowResize} onRowSelect={noop} />
+                  <RowHeader
+                    row={row}
+                    height={rowH}
+                    onResizeStart={startRowResize}
+                    onRowSelect={(r, shiftKey) => onRowSelect?.(r, shiftKey)}
+                  />
                 )}
 
                 {/* Left col spacer */}
@@ -356,16 +452,23 @@ export function Grid({
                       ]
                         .filter(Boolean)
                         .join(" ")}
-                      style={{ width: w, maxWidth: w, cursor: "cell", backgroundColor: cell?.style?.backgroundColor }}
+                      style={{
+                        width: w,
+                        maxWidth: w,
+                        cursor: "cell",
+                        backgroundColor: cell?.style?.backgroundColor,
+                      }}
                       onMouseDown={(e) => {
                         if (e.button !== 0) return;
                         isDragging.current = true;
-                        onCellClick({ row, col });
+                        onCellClick({ row, col }, e.shiftKey);
                       }}
                       onMouseEnter={() => {
                         if (isDragging.current) onSelectionDrag({ row, col });
                       }}
-                      onMouseUp={() => { isDragging.current = false; }}
+                      onMouseUp={() => {
+                        isDragging.current = false;
+                      }}
                       onDoubleClick={() => onCellDoubleClick({ row, col })}
                       onContextMenu={
                         onContextMenu ? (e) => onContextMenu(e, { row, col }) : undefined
@@ -388,7 +491,6 @@ export function Grid({
                             }
                           }}
                           onBlur={() => onEditCommit(editValue)}
-                          autoFocus
                           spellCheck={false}
                         />
                       ) : (
@@ -405,9 +507,13 @@ export function Grid({
                       )}
                       {commentedCells?.has(ref) && (
                         <button
+                          type="button"
                           className="absolute top-0 right-0 w-0 h-0 border-t-[8px] border-t-orange-400 border-l-[8px] border-l-transparent cursor-pointer z-[5] hover:border-t-orange-500"
                           title="View comments"
-                          onClick={(e) => { e.stopPropagation(); onCommentClick?.({ row, col }); }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onCommentClick?.({ row, col });
+                          }}
                         />
                       )}
                     </td>
@@ -416,10 +522,7 @@ export function Grid({
 
                 {/* Right col spacer */}
                 {rightSpacerWidth > 0 && (
-                  <td
-                    aria-hidden
-                    style={{ width: rightSpacerWidth, padding: 0, border: "none" }}
-                  />
+                  <td aria-hidden style={{ width: rightSpacerWidth, padding: 0, border: "none" }} />
                 )}
               </tr>
             );

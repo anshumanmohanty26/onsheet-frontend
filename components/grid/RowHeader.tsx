@@ -1,13 +1,13 @@
 "use client";
 
-import { memo, useCallback, useRef } from "react";
 import { GRID } from "@/constants/defaults";
+import { memo, useCallback } from "react";
 
 interface RowHeaderProps {
   row: number;
   height: number;
   onResizeStart: (row: number, startY: number, currentHeight: number) => void;
-  onRowSelect: (row: number) => void;
+  onRowSelect: (row: number, shiftKey: boolean) => void;
 }
 
 /** Row header cell (1, 2, 3…) with a resize handle on the bottom edge. */
@@ -30,7 +30,7 @@ export const RowHeader = memo(function RowHeader({
     <td
       className="sticky left-0 z-10 bg-gray-100 border border-gray-300 text-xs text-center text-gray-500 font-medium relative select-none"
       style={{ width: GRID.ROW_HEADER_WIDTH, height }}
-      onClick={() => onRowSelect(row)}
+      onClick={(e) => onRowSelect(row, e.shiftKey)}
     >
       {row + 1}
       <div

@@ -1,8 +1,9 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useAuth } from "@/lib/auth/AuthContext";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import type { ReactNode } from "react";
 
 const navLinks = [
   { href: "/settings", label: "Profile" },
@@ -11,6 +12,7 @@ const navLinks = [
 
 export default function SettingsLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const { logout } = useAuth();
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -45,6 +47,13 @@ export default function SettingsLayout({ children }: { children: ReactNode }) {
               );
             })}
           </ul>
+          <button
+            type="button"
+            onClick={logout}
+            className="mt-6 w-full text-left rounded-lg px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+          >
+            Sign out
+          </button>
         </nav>
 
         {/* Main content */}

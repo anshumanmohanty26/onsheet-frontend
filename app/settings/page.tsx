@@ -1,11 +1,11 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/lib/auth/AuthContext";
-import { userService } from "@/services/userService";
-import { ApiError } from "@/services/api";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
+import { useAuth } from "@/lib/auth/AuthContext";
+import { ApiError } from "@/services/api";
+import { userService } from "@/services/userService";
+import { useRouter } from "next/navigation";
+import { FormEvent, useEffect, useState } from "react";
 
 export default function ProfileSettingsPage() {
   const router = useRouter();
@@ -24,7 +24,10 @@ export default function ProfileSettingsPage() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     const trimmed = displayName.trim();
-    if (!trimmed) { setError("Name is required."); return; }
+    if (!trimmed) {
+      setError("Name is required.");
+      return;
+    }
     if (trimmed === user?.displayName) return;
 
     setSaving(true);
@@ -66,9 +69,7 @@ export default function ProfileSettingsPage() {
         onSubmit={handleSubmit}
         className="rounded-xl border border-gray-200 bg-white p-6 flex flex-col gap-5"
       >
-        <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
-          Basic info
-        </h2>
+        <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Basic info</h2>
 
         <div>
           <label htmlFor="displayName" className="block text-sm font-medium text-gray-700 mb-1">
@@ -78,7 +79,11 @@ export default function ProfileSettingsPage() {
             id="displayName"
             type="text"
             value={displayName}
-            onChange={(e) => { setDisplayName(e.target.value); setError(""); setSuccess(""); }}
+            onChange={(e) => {
+              setDisplayName(e.target.value);
+              setError("");
+              setSuccess("");
+            }}
             className="w-full max-w-sm rounded-lg border border-gray-200 px-3.5 py-2 text-sm shadow-sm outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             disabled={saving}
             autoComplete="name"
@@ -86,8 +91,11 @@ export default function ProfileSettingsPage() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+          <label htmlFor="settings-email" className="block text-sm font-medium text-gray-700 mb-1">
+            Email
+          </label>
           <input
+            id="settings-email"
             type="email"
             value={user.email}
             disabled

@@ -1,5 +1,5 @@
-import { useCallback, useMemo, useRef, useState } from "react";
 import { GRID } from "@/constants/defaults";
+import { useCallback, useMemo, useState } from "react";
 
 interface VirtualRange {
   startRow: number;
@@ -49,7 +49,10 @@ export function useVirtualization({
     let startRow = 0;
     for (let r = 0; r < totalRows; r++) {
       const h = getRowHeight(r);
-      if (accY + h > scrollTop) { startRow = r; break; }
+      if (accY + h > scrollTop) {
+        startRow = r;
+        break;
+      }
       accY += h;
     }
     const offsetTop = accY;
@@ -66,7 +69,10 @@ export function useVirtualization({
     let startCol = 0;
     for (let c = 0; c < totalCols; c++) {
       const w = getColWidth(c);
-      if (accX + w > scrollLeft) { startCol = c; break; }
+      if (accX + w > scrollLeft) {
+        startCol = c;
+        break;
+      }
       accX += w;
     }
     const offsetLeft = accX;
@@ -79,7 +85,16 @@ export function useVirtualization({
     }
 
     return { startRow, endRow, startCol, endCol, offsetTop, offsetLeft };
-  }, [scrollTop, scrollLeft, totalRows, totalCols, viewportWidth, viewportHeight, getRowHeight, getColWidth]);
+  }, [
+    scrollTop,
+    scrollLeft,
+    totalRows,
+    totalCols,
+    viewportWidth,
+    viewportHeight,
+    getRowHeight,
+    getColWidth,
+  ]);
 
   const totalContentHeight = useMemo(() => {
     let h = 0;

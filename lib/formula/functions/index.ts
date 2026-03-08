@@ -1,10 +1,10 @@
 import type { FormulaFn } from "../types";
 
+import * as date from "./date";
+import * as logical from "./logical";
+import * as lookup from "./lookup";
 import * as math from "./math";
 import * as text from "./text";
-import * as logical from "./logical";
-import * as date from "./date";
-import * as lookup from "./lookup";
 
 /** Registry of all built-in formula functions keyed by uppercase name. */
 export const FUNCTIONS: Record<string, FormulaFn> = {

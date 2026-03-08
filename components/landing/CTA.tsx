@@ -13,13 +13,11 @@ export function CTA() {
         >
           Your team is ready.
           <br />
-          <span className="text-emerald-600">
-            Your spreadsheet should be too.
-          </span>
+          <span className="text-emerald-600">Your spreadsheet should be too.</span>
         </h2>
         <p className="mt-6 text-lg text-gray-600 max-w-xl mx-auto">
-          Get started in seconds &mdash; no templates to configure, no plugins to
-          install. Just open OnSheet and start working.
+          Get started in seconds &mdash; no templates to configure, no plugins to install. Just open
+          OnSheet and start working.
         </p>
 
         <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">

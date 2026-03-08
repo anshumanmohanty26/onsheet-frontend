@@ -13,6 +13,5 @@ export interface AgentResult {
 }
 
 export const aiService = {
-  ask: (sheetId: string, query: string) =>
-    api.post<AgentResult>("/ai/agent", { sheetId, query }),
+  ask: (sheetId: string, query: string) => api.post<AgentResult>("/ai/agent", { sheetId, query }),
 };

@@ -1,17 +1,14 @@
 "use client";
 
-import { use, useCallback, useEffect, useReducer, useState } from "react";
 import { Grid } from "@/components/grid/Grid";
-import {
-  initialSelectionState,
-  selectionReducer,
-} from "@/store";
-import { SocketManager } from "@/lib/collaboration/socket";
-import { GRID } from "@/constants/defaults";
 import { env } from "@/config/env";
+import { GRID } from "@/constants/defaults";
+import { SocketManager } from "@/lib/collaboration/socket";
 import { cellRef } from "@/lib/utils/coordinates";
-import type { CellCoord } from "@/types/selection";
+import { initialSelectionState, selectionReducer } from "@/store";
 import type { CellData, CellMap } from "@/types/cell";
+import type { CellCoord } from "@/types/selection";
+import { use, useCallback, useEffect, useReducer, useState } from "react";
 
 /** Base server URL — strips /api/v1 suffix */
 function getServerUrl(): string {
@@ -51,14 +48,10 @@ async function fetchPublicWorkbook(shareToken: string): Promise<PublicWorkbook> 
   return (body.data ?? body) as PublicWorkbook;
 }
 
-async function fetchPublicCells(
-  shareToken: string,
-  sheetId: string,
-): Promise<CellMap> {
-  const res = await fetch(
-    `${env.apiUrl}/public/sheets/${shareToken}/${sheetId}/cells`,
-    { credentials: "omit" },
-  );
+async function fetchPublicCells(shareToken: string, sheetId: string): Promise<CellMap> {
+  const res = await fetch(`${env.apiUrl}/public/sheets/${shareToken}/${sheetId}/cells`, {
+    credentials: "omit",
+  });
   if (!res.ok) throw new Error("Failed to load sheet cells");
   const body = await res.json();
   const apiCells = (body.data ?? body) as ApiCellRaw[];
@@ -120,7 +113,13 @@ export default function SharePage({ params }: PageProps) {
     const unsubMessage = socket.onMessage((type, payload) => {
       if (type === "cell:updated") {
         const update = payload as {
-          cell: { row: number; col: number; rawValue?: string; computed?: string; style?: CellData["style"] };
+          cell: {
+            row: number;
+            col: number;
+            rawValue?: string;
+            computed?: string;
+            style?: CellData["style"];
+          };
         };
         const ref = cellRef(update.cell.row, update.cell.col);
         const raw = update.cell.rawValue ?? "";
@@ -173,10 +172,7 @@ export default function SharePage({ params }: PageProps) {
             View only
           </span>
         </div>
-        <a
-          href="/dashboard"
-          className="text-xs text-emerald-600 hover:underline font-medium"
-        >
+        <a href="/dashboard" className="text-xs text-emerald-600 hover:underline font-medium">
           Open OnSheet
         </a>
       </div>
@@ -212,6 +208,7 @@ export default function SharePage({ params }: PageProps) {
               {workbook.sheets.map((sheet) => (
                 <button
                   key={sheet.id}
+                  type="button"
                   onClick={() => setActiveSheetId(sheet.id)}
                   className={`px-3 py-1 text-xs rounded font-medium transition-colors ${
                     sheet.id === activeSheetId
@@ -229,4 +226,3 @@ export default function SharePage({ params }: PageProps) {
     </div>
   );
 }
-

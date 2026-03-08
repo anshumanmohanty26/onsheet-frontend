@@ -1,7 +1,7 @@
-import { useCallback, useRef, useState } from "react";
 import { GRID } from "@/constants/defaults";
 import { cellRef, colIndexToLabel } from "@/lib/utils/coordinates";
 import type { CellMap } from "@/types/cell";
+import { useCallback, useRef, useState } from "react";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -27,7 +27,7 @@ function getUsedRange(cells: CellMap, totalRows: number) {
     if (!cell || (!cell.raw && !cell.computed)) continue;
     const match = /^([A-Z]+)(\d+)$/.exec(key);
     if (!match) continue;
-    const row = parseInt(match[2], 10) - 1;
+    const row = Number.parseInt(match[2], 10) - 1;
     let col = 0;
     for (const ch of match[1]) col = col * 26 + ch.charCodeAt(0) - 64;
     col -= 1;
@@ -79,7 +79,13 @@ function toDelimited(cells: CellMap, totalRows: number, sep: string): string {
 // ── Hook ─────────────────────────────────────────────────────────────────────
 
 /** Handles file-level actions: multi-format import/export and share-link copy. */
-export function useFileActions({ cells, workbookTitle, totalRows, activeSheetId, onImportCells }: Options) {
+export function useFileActions({
+  cells,
+  workbookTitle,
+  totalRows,
+  activeSheetId,
+  onImportCells,
+}: Options) {
   const [shareToast, setShareToast] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -94,7 +100,10 @@ export function useFileActions({ cells, workbookTitle, totalRows, activeSheetId,
   // ── Export: TSV ───────────────────────────────────────────────────────────
   const handleDownloadTsv = useCallback(() => {
     const text = toDelimited(cells, totalRows, "\t");
-    downloadBlob(new Blob([text], { type: "text/tab-separated-values;charset=utf-8" }), `${title}.tsv`);
+    downloadBlob(
+      new Blob([text], { type: "text/tab-separated-values;charset=utf-8" }),
+      `${title}.tsv`,
+    );
   }, [cells, totalRows, title]);
 
   // ── Export: Excel (.xlsx) ─────────────────────────────────────────────────
@@ -110,7 +119,9 @@ export function useFileActions({ cells, workbookTitle, totalRows, activeSheetId,
     XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
     const buf = XLSX.write(wb, { bookType: "xlsx", type: "array" });
     downloadBlob(
-      new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }),
+      new Blob([buf], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      }),
       `${title}.xlsx`,
     );
   }, [cells, totalRows, title]);
@@ -139,7 +150,11 @@ export function useFileActions({ cells, workbookTitle, totalRows, activeSheetId,
     const grid = buildGrid(cells, rows, cols);
     const header = Array.from({ length: cols }, (_, i) => colIndexToLabel(i));
 
-    const doc = new jsPDF({ orientation: cols > 8 ? "landscape" : "portrait", unit: "pt", format: "a4" });
+    const doc = new jsPDF({
+      orientation: cols > 8 ? "landscape" : "portrait",
+      unit: "pt",
+      format: "a4",
+    });
 
     doc.setFontSize(14);
     doc.text(title, 40, 30);
@@ -175,40 +190,59 @@ export function useFileActions({ cells, workbookTitle, totalRows, activeSheetId,
   }, [cells, totalRows, title]);
 
   // ── Unified export ────────────────────────────────────────────────────────
-  const handleExport = useCallback((format: string) => {
-    switch (format) {
-      case "csv": return handleDownloadCsv();
-      case "tsv": return handleDownloadTsv();
-      case "xlsx": return handleDownloadXlsx();
-      case "ods": return handleDownloadOds();
-      case "pdf": return handleDownloadPdf();
-      case "json": return handleDownloadJson();
-    }
-  }, [handleDownloadCsv, handleDownloadTsv, handleDownloadXlsx, handleDownloadOds, handleDownloadPdf, handleDownloadJson]);
+  const handleExport = useCallback(
+    (format: string) => {
+      switch (format) {
+        case "csv":
+          return handleDownloadCsv();
+        case "tsv":
+          return handleDownloadTsv();
+        case "xlsx":
+          return handleDownloadXlsx();
+        case "ods":
+          return handleDownloadOds();
+        case "pdf":
+          return handleDownloadPdf();
+        case "json":
+          return handleDownloadJson();
+      }
+    },
+    [
+      handleDownloadCsv,
+      handleDownloadTsv,
+      handleDownloadXlsx,
+      handleDownloadOds,
+      handleDownloadPdf,
+      handleDownloadJson,
+    ],
+  );
 
   // ── Import: Excel / CSV / TSV / ODS ───────────────────────────────────────
-  const handleImport = useCallback(async (file: File) => {
-    if (!onImportCells) return;
-    const XLSX = await import("xlsx");
-    const buf = await file.arrayBuffer();
-    const wb = XLSX.read(buf, { type: "array" });
-    const ws = wb.Sheets[wb.SheetNames[0]];
-    if (!ws) return;
+  const handleImport = useCallback(
+    async (file: File) => {
+      if (!onImportCells) return;
+      const XLSX = await import("xlsx");
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, { type: "array" });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      if (!ws) return;
 
-    const jsonRows = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: "" });
-    const imported: CellMap = {};
-    for (let r = 0; r < jsonRows.length; r++) {
-      const row = jsonRows[r];
-      if (!Array.isArray(row)) continue;
-      for (let c = 0; c < row.length; c++) {
-        const val = row[c];
-        if (val === null || val === undefined || val === "") continue;
-        const raw = String(val);
-        imported[cellRef(r, c)] = { raw, computed: raw };
+      const jsonRows = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: "" });
+      const imported: CellMap = {};
+      for (let r = 0; r < jsonRows.length; r++) {
+        const row = jsonRows[r];
+        if (!Array.isArray(row)) continue;
+        for (let c = 0; c < row.length; c++) {
+          const val = row[c];
+          if (val === null || val === undefined || val === "") continue;
+          const raw = String(val);
+          imported[cellRef(r, c)] = { raw, computed: raw };
+        }
       }
-    }
-    onImportCells(imported);
-  }, [onImportCells]);
+      onImportCells(imported);
+    },
+    [onImportCells],
+  );
 
   /** Open native file picker, then import the selected file */
   const triggerImport = useCallback(() => {

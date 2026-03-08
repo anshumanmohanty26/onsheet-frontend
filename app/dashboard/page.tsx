@@ -1,17 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/Button";
-import { WorkbookCard } from "@/components/dashboard/WorkbookCard";
-import { SharedWorkbookCard } from "@/components/dashboard/SharedWorkbookCard";
-import { NewWorkbookModal } from "@/components/dashboard/NewWorkbookModal";
 import { ImportModal } from "@/components/dashboard/ImportModal";
+import { NewWorkbookModal } from "@/components/dashboard/NewWorkbookModal";
+import { SharedWorkbookCard } from "@/components/dashboard/SharedWorkbookCard";
+import { WorkbookCard } from "@/components/dashboard/WorkbookCard";
+import { Button } from "@/components/ui/Button";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
-import { workbookService, type Workbook, type SharedWorkbook } from "@/services/workbookService";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { setPendingImport } from "@/lib/import/pendingImport";
 import { cellRef } from "@/lib/utils/coordinates";
+import { type SharedWorkbook, type Workbook, workbookService } from "@/services/workbookService";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -25,7 +25,6 @@ export default function DashboardPage() {
   const [showImport, setShowImport] = useState(false);
   const [search, setSearch] = useState("");
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
-
 
   const loadWorkbooks = useCallback(async () => {
     try {
@@ -95,9 +94,7 @@ export default function DashboardPage() {
     router.push(`/sheet/${workbook.id}`);
   }
 
-  const filtered = workbooks.filter((w) =>
-    w.name.toLowerCase().includes(search.toLowerCase()),
-  );
+  const filtered = workbooks.filter((w) => w.name.toLowerCase().includes(search.toLowerCase()));
 
   const filteredShared = sharedWorkbooks.filter((w) =>
     w.name.toLowerCase().includes(search.toLowerCase()),
@@ -110,11 +107,7 @@ export default function DashboardPage() {
         onClose={() => setShowModal(false)}
         onCreate={handleCreate}
       />
-      <ImportModal
-        open={showImport}
-        onClose={() => setShowImport(false)}
-        onImport={handleImport}
-      />
+      <ImportModal open={showImport} onClose={() => setShowImport(false)} onImport={handleImport} />
       <ConfirmModal
         open={!!deleteTargetId}
         onClose={() => setDeleteTargetId(null)}
@@ -142,7 +135,13 @@ export default function DashboardPage() {
         </div>
         <div className="flex gap-2">
           <Button onClick={() => setShowImport(true)} variant="secondary" size="md">
-            <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <svg
+              className="size-4"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+            >
               <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
               <polyline points="17 8 12 3 7 8" />
               <line x1="12" y1="3" x2="12" y2="15" />
@@ -150,7 +149,13 @@ export default function DashboardPage() {
             Import
           </Button>
           <Button onClick={() => setShowModal(true)} size="md">
-            <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <svg
+              className="size-4"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+            >
               <path d="M12 5v14M5 12h14" />
             </svg>
             New spreadsheet
@@ -165,8 +170,7 @@ export default function DashboardPage() {
             type="search"
             placeholder="Search spreadsheets…"
             value={search}
-            onChange={(e) => setSearch(e.target.value)
-            }
+            onChange={(e) => setSearch(e.target.value)}
             className="w-full max-w-sm rounded-lg border border-gray-200 bg-white px-3.5 py-2 text-sm shadow-sm outline-none placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all"
           />
         </div>
@@ -208,15 +212,11 @@ export default function DashboardPage() {
               <rect x="14" y="14" width="7" height="7" rx="1" />
             </svg>
           </div>
-          <h2 className="text-lg font-semibold text-gray-800 mb-2">
-            No spreadsheets yet
-          </h2>
+          <h2 className="text-lg font-semibold text-gray-800 mb-2">No spreadsheets yet</h2>
           <p className="text-sm text-gray-500 mb-6 max-w-xs">
             Create your first spreadsheet and start collaborating with your team.
           </p>
-          <Button onClick={() => setShowModal(true)}>
-            Create spreadsheet
-          </Button>
+          <Button onClick={() => setShowModal(true)}>Create spreadsheet</Button>
         </div>
       )}
 
@@ -225,8 +225,21 @@ export default function DashboardPage() {
         <div>
           {filteredShared.length > 0 && (
             <div className="flex items-center gap-2 mb-4">
-              <svg className="size-4 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-              <h2 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">My spreadsheets</h2>
+              <svg
+                className="size-4 text-gray-400"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <rect x="3" y="3" width="7" height="7" rx="1" />
+                <rect x="14" y="3" width="7" height="7" rx="1" />
+                <rect x="3" y="14" width="7" height="7" rx="1" />
+                <rect x="14" y="14" width="7" height="7" rx="1" />
+              </svg>
+              <h2 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">
+                My spreadsheets
+              </h2>
             </div>
           )}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
@@ -241,7 +254,13 @@ export default function DashboardPage() {
       {!loading && filteredShared.length > 0 && (
         <div className="mt-10">
           <div className="flex items-center gap-2 mb-4">
-            <svg className="size-4 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg
+              className="size-4 text-gray-400"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
               <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
               <circle cx="9" cy="7" r="4" />
               <path d="M23 21v-2a4 4 0 00-3-3.87" />

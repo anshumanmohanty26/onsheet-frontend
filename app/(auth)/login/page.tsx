@@ -1,12 +1,12 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { ApiError } from "@/services/api";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { FormEvent, useState } from "react";
 
 interface FormState {
   email: string;
@@ -25,8 +25,7 @@ function validate(form: FormState): Errors {
   else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
     errors.email = "Enter a valid email address.";
   if (!form.password) errors.password = "Password is required.";
-  else if (form.password.length < 8)
-    errors.password = "Password must be at least 8 characters.";
+  else if (form.password.length < 8) errors.password = "Password must be at least 8 characters.";
   return errors;
 }
 
@@ -60,7 +59,7 @@ export default function LoginPage() {
       await login({ email: form.email, password: form.password });
       const params = new URLSearchParams(window.location.search);
       const next = params.get("next");
-      router.replace(next && next.startsWith("/") ? next : "/dashboard");
+      router.replace(next?.startsWith("/") ? next : "/dashboard");
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
         setErrors({ general: "Invalid email or password." });
@@ -78,9 +77,7 @@ export default function LoginPage() {
     <>
       <div className="mb-8 text-center">
         <h1 className="text-2xl font-bold text-gray-900">Welcome back</h1>
-        <p className="mt-1.5 text-sm text-gray-500">
-          Sign in to your OnSheet account
-        </p>
+        <p className="mt-1.5 text-sm text-gray-500">Sign in to your OnSheet account</p>
       </div>
 
       {errors.general && (
@@ -115,12 +112,7 @@ export default function LoginPage() {
           disabled={loading}
         />
 
-        <Button
-          type="submit"
-          size="lg"
-          loading={loading}
-          className="mt-2 w-full"
-        >
+        <Button type="submit" size="lg" loading={loading} className="mt-2 w-full">
           Sign in
         </Button>
       </form>

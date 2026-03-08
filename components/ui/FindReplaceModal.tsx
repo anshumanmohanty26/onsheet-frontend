@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { parseCellRef } from "@/lib/utils/coordinates";
 import type { CellMap } from "@/types/cell";
 import type { CellCoord } from "@/types/selection";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 interface FindReplaceModalProps {
   cells: CellMap;
@@ -56,7 +56,8 @@ export function FindReplaceModal({
     }
     // Sort by row then col so we navigate in reading order
     results.sort((a, b) => {
-      const pa = parseCellRef(a), pb = parseCellRef(b);
+      const pa = parseCellRef(a);
+      const pb = parseCellRef(b);
       if (!pa || !pb) return 0;
       return pa.row !== pb.row ? pa.row - pb.row : pa.col - pb.col;
     });
@@ -129,7 +130,8 @@ export function FindReplaceModal({
   }, [matches, cells, find, replace, matchCase, wholeCell, onReplaceAll]);
 
   const statusText = (() => {
-    if (replaceCount !== null) return `Replaced ${replaceCount} cell${replaceCount !== 1 ? "s" : ""}.`;
+    if (replaceCount !== null)
+      return `Replaced ${replaceCount} cell${replaceCount !== 1 ? "s" : ""}.`;
     if (!find) return "";
     if (matches.length === 0) return "No matches found";
     return `${currentIdx + 1} of ${matches.length} matches`;
@@ -138,12 +140,15 @@ export function FindReplaceModal({
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 animate-fade-in"
-      onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
     >
       <div className="bg-white rounded-xl shadow-xl w-[440px] border border-gray-200 animate-fade-in-scale">
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100">
           <h2 className="text-sm font-semibold text-gray-900">Find & Replace</h2>
           <button
+            type="button"
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 transition-colors text-lg leading-none"
           >
@@ -153,25 +158,35 @@ export function FindReplaceModal({
 
         <div className="px-5 py-4 space-y-3">
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Find</label>
+            <label htmlFor="find-input" className="block text-xs font-medium text-gray-500 mb-1">
+              Find
+            </label>
             <input
+              id="find-input"
               ref={findRef}
               type="text"
               value={find}
               onChange={(e) => setFind(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") handleFindNext(); }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleFindNext();
+              }}
               className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-500"
               placeholder="Search…"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Replace with</label>
+            <label htmlFor="replace-input" className="block text-xs font-medium text-gray-500 mb-1">
+              Replace with
+            </label>
             <input
+              id="replace-input"
               type="text"
               value={replace}
               onChange={(e) => setReplace(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") handleReplace(); }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleReplace();
+              }}
               className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-500"
               placeholder="Replacement…"
             />
@@ -199,7 +214,9 @@ export function FindReplaceModal({
           </div>
 
           {statusText && (
-            <p className={`text-xs ${matches.length === 0 && !replaceCount ? "text-red-500" : "text-emerald-600"}`}>
+            <p
+              className={`text-xs ${matches.length === 0 && !replaceCount ? "text-red-500" : "text-emerald-600"}`}
+            >
               {statusText}
             </p>
           )}
@@ -208,6 +225,7 @@ export function FindReplaceModal({
         <div className="flex items-center justify-between px-5 py-3 border-t border-gray-100 gap-2">
           <div className="flex gap-2">
             <button
+              type="button"
               onClick={handleFindPrev}
               disabled={matches.length === 0}
               className="px-3 py-1.5 text-xs border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:pointer-events-none transition-colors"
@@ -215,6 +233,7 @@ export function FindReplaceModal({
               ← Prev
             </button>
             <button
+              type="button"
               onClick={handleFindNext}
               disabled={matches.length === 0}
               className="px-3 py-1.5 text-xs border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:pointer-events-none transition-colors"
@@ -224,6 +243,7 @@ export function FindReplaceModal({
           </div>
           <div className="flex gap-2">
             <button
+              type="button"
               onClick={handleReplace}
               disabled={matches.length === 0}
               className="px-3 py-1.5 text-xs bg-white border border-emerald-500 text-emerald-600 rounded-md hover:bg-emerald-50 disabled:opacity-40 disabled:pointer-events-none transition-colors"
@@ -231,6 +251,7 @@ export function FindReplaceModal({
               Replace
             </button>
             <button
+              type="button"
               onClick={handleReplaceAll}
               disabled={matches.length === 0}
               className="px-3 py-1.5 text-xs bg-emerald-600 text-white rounded-md hover:bg-emerald-700 disabled:opacity-40 disabled:pointer-events-none transition-colors"

@@ -1,7 +1,7 @@
 "use client";
 
-import { FormEvent, useCallback, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { FormEvent, useCallback, useRef, useState } from "react";
 
 interface ImportModalProps {
   open: boolean;
@@ -93,36 +93,33 @@ export function ImportModal({ open, onClose, onImport }: ImportModalProps) {
     if (fileRef.current) fileRef.current.value = "";
   }, []);
 
-  const handleFileChange = useCallback(
-    async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const f = e.target.files?.[0];
-      if (!f) return;
+  const handleFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
 
-      const ext = f.name.split(".").pop()?.toLowerCase();
-      const SUPPORTED = ["csv", "tsv", "xlsx", "xls", "ods", "json"];
-      if (!ext || !SUPPORTED.includes(ext)) {
-        setError("Supported formats: .xlsx, .xls, .csv, .tsv, .ods, .json");
-        return;
-      }
+    const ext = f.name.split(".").pop()?.toLowerCase();
+    const SUPPORTED = ["csv", "tsv", "xlsx", "xls", "ods", "json"];
+    if (!ext || !SUPPORTED.includes(ext)) {
+      setError("Supported formats: .xlsx, .xls, .csv, .tsv, .ods, .json");
+      return;
+    }
 
-      if (f.size > 10 * 1024 * 1024) {
-        setError("File too large (max 10 MB).");
-        return;
-      }
+    if (f.size > 10 * 1024 * 1024) {
+      setError("File too large (max 10 MB).");
+      return;
+    }
 
-      setFile(f);
-      setError("");
-      setName(f.name.replace(/\.(csv|tsv|xlsx|xls|ods|json)$/i, ""));
+    setFile(f);
+    setError("");
+    setName(f.name.replace(/\.(csv|tsv|xlsx|xls|ods|json)$/i, ""));
 
-      try {
-        const rows = await parseFile(f, ext);
-        setPreview(rows.slice(0, 5));
-      } catch {
-        setError("Could not parse file.");
-      }
-    },
-    [],
-  );
+    try {
+      const rows = await parseFile(f, ext);
+      setPreview(rows.slice(0, 5));
+    } catch {
+      setError("Could not parse file.");
+    }
+  }, []);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -168,15 +165,11 @@ export function ImportModal({ open, onClose, onImport }: ImportModalProps) {
         className="w-full max-w-md rounded-2xl bg-white shadow-xl p-6"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-lg font-semibold text-gray-900 mb-5">
-          Import spreadsheet
-        </h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-5">Import spreadsheet</h2>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {/* File drop zone */}
-          <label
-            className="flex flex-col items-center justify-center h-32 rounded-xl border-2 border-dashed border-gray-300 hover:border-emerald-400 bg-gray-50 hover:bg-emerald-50/50 cursor-pointer transition-colors"
-          >
+          <label className="flex flex-col items-center justify-center h-32 rounded-xl border-2 border-dashed border-gray-300 hover:border-emerald-400 bg-gray-50 hover:bg-emerald-50/50 cursor-pointer transition-colors">
             <svg
               className="size-8 text-gray-400 mb-2"
               viewBox="0 0 24 24"
@@ -189,14 +182,10 @@ export function ImportModal({ open, onClose, onImport }: ImportModalProps) {
               <line x1="12" y1="3" x2="12" y2="15" />
             </svg>
             {file ? (
-              <span className="text-sm text-emerald-600 font-medium">
-                {file.name}
-              </span>
+              <span className="text-sm text-emerald-600 font-medium">{file.name}</span>
             ) : (
               <>
-                <span className="text-sm text-gray-500">
-                  Click to select a file
-                </span>
+                <span className="text-sm text-gray-500">Click to select a file</span>
                 <span className="text-xs text-gray-400 mt-1">
                   .xlsx, .xls, .csv, .tsv, .ods, .json (max 10 MB)
                 </span>
@@ -215,10 +204,7 @@ export function ImportModal({ open, onClose, onImport }: ImportModalProps) {
           {/* Name input */}
           {file && (
             <div>
-              <label
-                htmlFor="import-name"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
+              <label htmlFor="import-name" className="block text-sm font-medium text-gray-700 mb-1">
                 Spreadsheet name
               </label>
               <input
@@ -242,10 +228,7 @@ export function ImportModal({ open, onClose, onImport }: ImportModalProps) {
               <table className="w-full text-xs text-gray-600">
                 <tbody>
                   {preview.map((row, ri) => (
-                    <tr
-                      key={ri}
-                      className={ri === 0 ? "bg-gray-50 font-medium" : ""}
-                    >
+                    <tr key={ri} className={ri === 0 ? "bg-gray-50 font-medium" : ""}>
                       {row.slice(0, 8).map((cell, ci) => (
                         <td
                           key={ci}
@@ -254,32 +237,21 @@ export function ImportModal({ open, onClose, onImport }: ImportModalProps) {
                           {cell}
                         </td>
                       ))}
-                      {row.length > 8 && (
-                        <td className="px-2 py-1 text-gray-400">…</td>
-                      )}
+                      {row.length > 8 && <td className="px-2 py-1 text-gray-400">…</td>}
                     </tr>
                   ))}
                 </tbody>
               </table>
               {preview.length === 5 && (
-                <div className="text-xs text-gray-400 text-center py-1">
-                  Showing first 5 rows
-                </div>
+                <div className="text-xs text-gray-400 text-center py-1">Showing first 5 rows</div>
               )}
             </div>
           )}
 
-          {error && (
-            <p className="text-sm text-red-500">{error}</p>
-          )}
+          {error && <p className="text-sm text-red-500">{error}</p>}
 
           <div className="flex gap-3 justify-end pt-1">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={handleClose}
-              disabled={loading}
-            >
+            <Button type="button" variant="secondary" onClick={handleClose} disabled={loading}>
               Cancel
             </Button>
             <Button type="submit" loading={loading} disabled={!file}>

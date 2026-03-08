@@ -1,10 +1,6 @@
-import { useCallback, useReducer } from "react";
-import {
-  initialSelectionState,
-  selectionReducer,
-  type SelectionAction,
-} from "@/store/selectionStore";
+import { initialSelectionState, selectionReducer } from "@/store/selectionStore";
 import type { CellCoord, SelectionRange } from "@/types/selection";
+import { useCallback, useReducer } from "react";
 
 /** Hook for cell/range selection logic. */
 export function useSelection() {

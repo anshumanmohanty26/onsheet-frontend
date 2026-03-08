@@ -12,10 +12,7 @@ export const initialHistoryState: HistoryState = {
   canRedo: false,
 };
 
-export function historyReducer(
-  state: HistoryState,
-  action: HistoryAction,
-): HistoryState {
+export function historyReducer(state: HistoryState, action: HistoryAction): HistoryState {
   switch (action.type) {
     case "SET_CAN_UNDO":
       return { ...state, canUndo: action.value };
