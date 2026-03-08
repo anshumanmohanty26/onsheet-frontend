@@ -101,9 +101,11 @@ function RoleSelect({
 
 interface ShareButtonProps {
   workbookId?: string | null;
+  /** Only OWNERs can invite / revoke / toggle public access. */
+  canManage?: boolean;
 }
 
-export function ShareButton({ workbookId }: ShareButtonProps) {
+export function ShareButton({ workbookId, canManage = false }: ShareButtonProps) {
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<PermissionRole>("viewer");
@@ -256,21 +258,29 @@ export function ShareButton({ workbookId }: ShareButtonProps) {
                   <div className="text-[11px] text-gray-400">View-only · no sign-in required</div>
                 </div>
               </div>
-              {/* Toggle */}
-              <button
-                type="button"
-                disabled={publicToggling}
-                onClick={handlePublicToggle}
-                className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-200 focus:outline-none ${
-                  publicAccess ? "bg-emerald-500" : "bg-gray-200"
-                } ${publicToggling ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
-              >
+              {/* Toggle — owners only */}
+              {canManage ? (
+                <button
+                  type="button"
+                  disabled={publicToggling}
+                  onClick={handlePublicToggle}
+                  className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-200 focus:outline-none ${
+                    publicAccess ? "bg-emerald-500" : "bg-gray-200"
+                  } ${publicToggling ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+                >
+                  <span
+                    className={`inline-block size-3.5 transform rounded-full bg-white shadow transition-transform duration-200 ${
+                      publicAccess ? "translate-x-4" : "translate-x-0.5"
+                    }`}
+                  />
+                </button>
+              ) : (
                 <span
-                  className={`inline-block size-3.5 transform rounded-full bg-white shadow transition-transform duration-200 ${
-                    publicAccess ? "translate-x-4" : "translate-x-0.5"
-                  }`}
-                />
-              </button>
+                  className={`text-[11px] font-medium ${publicAccess ? "text-emerald-600" : "text-gray-400"}`}
+                >
+                  {publicAccess ? "On" : "Off"}
+                </span>
+              )}
             </div>
 
             {publicAccess && shareLink && (
@@ -295,36 +305,38 @@ export function ShareButton({ workbookId }: ShareButtonProps) {
             )}
           </div>
 
-          {/* ── Invite by email ── */}
-          <div>
-            <p className="mb-2 text-[11px] font-medium uppercase tracking-wide text-gray-400">
-              Invite people
-            </p>
-            <div className="flex gap-2">
-              <div className="flex-1">
-                <Input
-                  placeholder="Email address"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleShare();
-                  }}
-                />
-              </div>
-              <RoleSelect value={role} onChange={setRole} />
-              <Button size="sm" onClick={handleShare} loading={loading}>
-                Invite
-              </Button>
-            </div>
-            {error && (
-              <p className="mt-2 text-xs text-red-500 animate-in fade-in duration-150">{error}</p>
-            )}
-            {successMsg && (
-              <p className="mt-2 text-xs text-emerald-600 animate-in fade-in duration-150">
-                ✓ {successMsg}
+          {/* ── Invite by email — owners only ── */}
+          {canManage && (
+            <div>
+              <p className="mb-2 text-[11px] font-medium uppercase tracking-wide text-gray-400">
+                Invite people
               </p>
-            )}
-          </div>
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <Input
+                    placeholder="Email address"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleShare();
+                    }}
+                  />
+                </div>
+                <RoleSelect value={role} onChange={setRole} />
+                <Button size="sm" onClick={handleShare} loading={loading}>
+                  Invite
+                </Button>
+              </div>
+              {error && (
+                <p className="mt-2 text-xs text-red-500 animate-in fade-in duration-150">{error}</p>
+              )}
+              {successMsg && (
+                <p className="mt-2 text-xs text-emerald-600 animate-in fade-in duration-150">
+                  ✓ {successMsg}
+                </p>
+              )}
+            </div>
+          )}
 
           {/* ── People with access ── */}
           {permissions.length > 0 && (
@@ -350,13 +362,15 @@ export function ShareButton({ workbookId }: ShareButtonProps) {
                     <span className="text-[11px] text-gray-400">
                       {ROLE_OPTIONS.find((o) => o.value === p.role)?.label ?? p.role}
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => handleRevoke(p.userId)}
-                      className="rounded px-1.5 py-0.5 text-[11px] text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors duration-150"
-                    >
-                      Remove
-                    </button>
+                    {canManage && (
+                      <button
+                        type="button"
+                        onClick={() => handleRevoke(p.userId)}
+                        className="rounded px-1.5 py-0.5 text-[11px] text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors duration-150"
+                      >
+                        Remove
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}

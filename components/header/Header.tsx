@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/lib/auth/AuthContext";
+import type { CollabUser } from "@/types/collaboration";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
@@ -12,9 +13,21 @@ interface HeaderProps {
   onRename: (title: string) => void;
   onAiToggle?: () => void;
   aiOpen?: boolean;
+  /** Online collaborators to show as avatar circles next to the share button. */
+  collaborators?: CollabUser[];
+  /** Only OWNERs should be able to invite / remove people. */
+  canManage?: boolean;
 }
 
-export function Header({ title, workbookId, onRename, onAiToggle, aiOpen }: HeaderProps) {
+export function Header({
+  title,
+  workbookId,
+  onRename,
+  onAiToggle,
+  aiOpen,
+  collaborators,
+  canManage,
+}: HeaderProps) {
   const { user } = useAuth();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(title);
@@ -72,7 +85,28 @@ export function Header({ title, workbookId, onRename, onAiToggle, aiOpen }: Head
 
       <div className="flex-1" />
 
-      <ShareButton workbookId={workbookId} />
+      {/* Online collaborator avatars */}
+      {collaborators && collaborators.length > 0 && (
+        <div className="flex items-center -space-x-1.5">
+          {collaborators.slice(0, 5).map((user) => (
+            <div
+              key={user.socketId ?? user.id}
+              className="size-7 rounded-full text-white text-xs font-semibold flex items-center justify-center uppercase border-2 border-white shrink-0"
+              style={{ backgroundColor: user.color }}
+              title={user.name}
+            >
+              {user.name[0]}
+            </div>
+          ))}
+          {collaborators.length > 5 && (
+            <div className="size-7 rounded-full text-gray-600 text-xs font-semibold flex items-center justify-center bg-gray-200 border-2 border-white shrink-0">
+              +{collaborators.length - 5}
+            </div>
+          )}
+        </div>
+      )}
+
+      {canManage && <ShareButton workbookId={workbookId} canManage={canManage} />}
 
       {/* AI Agent button */}
       {onAiToggle && (

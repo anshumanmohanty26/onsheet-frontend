@@ -228,9 +228,11 @@ export function ImportModal({ open, onClose, onImport }: ImportModalProps) {
               <table className="w-full text-xs text-gray-600">
                 <tbody>
                   {preview.map((row, ri) => (
+                    // biome-ignore lint/suspicious/noArrayIndexKey: static CSV preview rows, order never changes
                     <tr key={ri} className={ri === 0 ? "bg-gray-50 font-medium" : ""}>
                       {row.slice(0, 8).map((cell, ci) => (
                         <td
+                          // biome-ignore lint/suspicious/noArrayIndexKey: static CSV preview cells, order never changes
                           key={ci}
                           className="px-2 py-1 border-r border-b border-gray-100 truncate max-w-[120px]"
                         >

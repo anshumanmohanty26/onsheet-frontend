@@ -5,10 +5,8 @@ import { env } from "@/config/env";
 import { GRID } from "@/constants/defaults";
 import { SocketManager } from "@/lib/collaboration/socket";
 import { cellRef } from "@/lib/utils/coordinates";
-import { initialSelectionState, selectionReducer } from "@/store";
 import type { CellData, CellMap } from "@/types/cell";
-import type { CellCoord } from "@/types/selection";
-import { use, useCallback, useEffect, useReducer, useState } from "react";
+import { use, useEffect, useState } from "react";
 
 /** Base server URL — strips /api/v1 suffix */
 function getServerUrl(): string {
@@ -74,8 +72,6 @@ export default function SharePage({ params }: PageProps) {
   const [cells, setCells] = useState<CellMap>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const [sel, selDispatch] = useReducer(selectionReducer, initialSelectionState);
 
   // Load workbook on mount
   useEffect(() => {
@@ -143,11 +139,7 @@ export default function SharePage({ params }: PageProps) {
     };
   }, [activeSheetId]);
 
-  const handleCellClick = useCallback((coord: CellCoord) => {
-    selDispatch({ type: "SET_ACTIVE", coord });
-  }, []);
-
-  const noop = useCallback(() => {}, []);
+  const noop = () => {};
 
   if (error) {
     return (
@@ -190,16 +182,17 @@ export default function SharePage({ params }: PageProps) {
             totalCols={GRID.COLS}
             columnWidths={{}}
             rowHeights={{}}
-            active={sel.active}
+            active={null}
             selection={null}
             editingRef={null}
             editValue=""
-            onCellClick={handleCellClick}
+            onCellClick={noop}
             onCellDoubleClick={noop}
             onEditChange={noop}
             onEditCommit={noop}
             onEditCancel={noop}
             onSelectionDrag={noop}
+            readOnly
           />
 
           {/* Sheet tabs */}

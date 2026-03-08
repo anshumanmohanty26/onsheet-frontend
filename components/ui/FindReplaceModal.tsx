@@ -65,6 +65,7 @@ export function FindReplaceModal({
   }, [find, cells, matchCase, wholeCell]);
 
   // Reset index when matches change
+  // biome-ignore lint/correctness/useExhaustiveDependencies: matches.length (not matches) is intentional to avoid resets on content changes; find resets on new search term
   useEffect(() => {
     setCurrentIdx(0);
     setReplaceCount(null);

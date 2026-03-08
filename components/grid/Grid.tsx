@@ -7,8 +7,9 @@ import { cellRef } from "@/lib/utils/coordinates";
 import { cellInRange } from "@/lib/utils/range";
 import type { SpreadsheetState } from "@/types";
 import type { CellMap, CellStyle } from "@/types/cell";
+import type { CollabUser } from "@/types/collaboration";
 import type { CellCoord, SelectionRange } from "@/types/selection";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ColumnHeader } from "./ColumnHeader";
 import { RowHeader } from "./RowHeader";
 
@@ -54,6 +55,10 @@ interface GridProps {
   commentedCells?: Set<string>;
   /** Fired when the user clicks the comment indicator triangle. */
   onCommentClick?: (coord: CellCoord) => void;
+  /** Remote collaborators — used to render colored cursor overlays on their active cells. */
+  collaborators?: CollabUser[];
+  /** When true the grid is view-only: no cell selection, no editing, no context menu, default cursor. */
+  readOnly?: boolean;
 }
 
 function applyCellStyle(style?: CellStyle): React.CSSProperties {
@@ -173,6 +178,8 @@ export function Grid({
   frozenRows = 0,
   commentedCells,
   onCommentClick,
+  collaborators,
+  readOnly = false,
 }: GridProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
@@ -262,6 +269,18 @@ export function Grid({
     (row: number, col: number) => (selection ? cellInRange({ row, col }, selection) : false),
     [selection],
   );
+
+  // ── Collaborator cursor map ───────────────────────────────────────────────
+  // Maps cellRef → { name, color } for O(1) lookup during cell render.
+  const collabCursorMap = useMemo(() => {
+    const map: Record<string, { name: string; color: string }> = {};
+    if (collaborators) {
+      for (const u of collaborators) {
+        if (u.activeCellRef) map[u.activeCellRef] = { name: u.name, color: u.color };
+      }
+    }
+    return map;
+  }, [collaborators]);
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
@@ -367,23 +386,27 @@ export function Grid({
                         style={{
                           width: w,
                           maxWidth: w,
-                          cursor: "cell",
+                          cursor: readOnly ? "default" : "cell",
                           backgroundColor: cell?.style?.backgroundColor,
                         }}
                         onMouseDown={(e) => {
-                          if (e.button !== 0) return;
+                          if (readOnly || e.button !== 0) return;
                           isDragging.current = true;
                           onCellClick({ row, col }, e.shiftKey);
                         }}
                         onMouseEnter={() => {
-                          if (isDragging.current) onSelectionDrag({ row, col });
+                          if (!readOnly && isDragging.current) onSelectionDrag({ row, col });
                         }}
                         onMouseUp={() => {
                           isDragging.current = false;
                         }}
-                        onDoubleClick={() => onCellDoubleClick({ row, col })}
+                        onDoubleClick={() => {
+                          if (!readOnly) onCellDoubleClick({ row, col });
+                        }}
                         onContextMenu={
-                          onContextMenu ? (e) => onContextMenu(e, { row, col }) : undefined
+                          !readOnly && onContextMenu
+                            ? (e) => onContextMenu(e, { row, col })
+                            : undefined
                         }
                       >
                         {isEdit ? (
@@ -415,6 +438,24 @@ export function Grid({
                               onCommentClick?.({ row, col });
                             }}
                           />
+                        )}
+                        {/* Remote collaborator cursor overlay */}
+                        {collabCursorMap[ref] && !isActiveCell && (
+                          <div
+                            aria-hidden
+                            className="absolute inset-0 pointer-events-none z-[8]"
+                            style={{
+                              outline: `2px solid ${collabCursorMap[ref].color}`,
+                              outlineOffset: "-1px",
+                            }}
+                          >
+                            <span
+                              className="absolute top-0 left-0 text-[8px] text-white px-0.5 leading-tight max-w-full truncate"
+                              style={{ backgroundColor: collabCursorMap[ref].color }}
+                            >
+                              {collabCursorMap[ref].name.split(" ")[0]}
+                            </span>
+                          </div>
                         )}
                       </td>
                     );
@@ -493,23 +534,27 @@ export function Grid({
                       style={{
                         width: w,
                         maxWidth: w,
-                        cursor: "cell",
+                        cursor: readOnly ? "default" : "cell",
                         backgroundColor: cell?.style?.backgroundColor,
                       }}
                       onMouseDown={(e) => {
-                        if (e.button !== 0) return;
+                        if (readOnly || e.button !== 0) return;
                         isDragging.current = true;
                         onCellClick({ row, col }, e.shiftKey);
                       }}
                       onMouseEnter={() => {
-                        if (isDragging.current) onSelectionDrag({ row, col });
+                        if (!readOnly && isDragging.current) onSelectionDrag({ row, col });
                       }}
                       onMouseUp={() => {
                         isDragging.current = false;
                       }}
-                      onDoubleClick={() => onCellDoubleClick({ row, col })}
+                      onDoubleClick={() => {
+                        if (!readOnly) onCellDoubleClick({ row, col });
+                      }}
                       onContextMenu={
-                        onContextMenu ? (e) => onContextMenu(e, { row, col }) : undefined
+                        !readOnly && onContextMenu
+                          ? (e) => onContextMenu(e, { row, col })
+                          : undefined
                       }
                     >
                       {isEdit ? (
@@ -541,6 +586,24 @@ export function Grid({
                             onCommentClick?.({ row, col });
                           }}
                         />
+                      )}
+                      {/* Remote collaborator cursor overlay */}
+                      {collabCursorMap[ref] && !isActiveCell && (
+                        <div
+                          aria-hidden
+                          className="absolute inset-0 pointer-events-none z-[8]"
+                          style={{
+                            outline: `2px solid ${collabCursorMap[ref].color}`,
+                            outlineOffset: "-1px",
+                          }}
+                        >
+                          <span
+                            className="absolute top-0 left-0 text-[8px] text-white px-0.5 leading-tight max-w-full truncate"
+                            style={{ backgroundColor: collabCursorMap[ref].color }}
+                          >
+                            {collabCursorMap[ref].name.split(" ")[0]}
+                          </span>
+                        </div>
                       )}
                     </td>
                   );

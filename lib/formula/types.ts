@@ -23,6 +23,8 @@ export interface EvalContext {
   cells: CellMap;
   /** Resolves a cell ref like "A1" to its computed number/string value. */
   resolve: (ref: string) => FormulaValue;
-  /** Expands a range "A1:B3" into an array of resolved values. */
+  /** Expands a range "A1:B3" into a flat row-major array of resolved values. */
   resolveRange: (start: string, end: string) => FormulaValue[];
+  /** Expands a range "A1:B3" into a 2D array (rows × cols) of resolved values. */
+  resolveRange2D: (start: string, end: string) => FormulaValue[][];
 }

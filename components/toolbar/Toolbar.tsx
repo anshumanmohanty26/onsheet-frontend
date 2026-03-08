@@ -1,7 +1,7 @@
 "use client";
 
-import type { NumberFormatId } from "@/constants/formats";
 import { FONT_LIST } from "@/constants/fonts";
+import type { NumberFormatId } from "@/constants/formats";
 import { useGoogleFonts } from "@/hooks/useGoogleFonts";
 import type { CellStyle } from "@/types/cell";
 import { useRef } from "react";
@@ -113,7 +113,11 @@ export function Toolbar({ style = {}, onStyleChange, onUndo, onRedo }: ToolbarPr
         className="h-8 px-1.5 text-xs rounded border border-gray-200 bg-white text-gray-700 hover:border-gray-300 focus:outline-none focus:ring-1 focus:ring-emerald-400 cursor-pointer max-w-[140px]"
       >
         {FONT_LIST.map((f) => (
-          <option key={f.value} value={f.value} style={{ fontFamily: f.value === "Default" ? undefined : f.value }}>
+          <option
+            key={f.value}
+            value={f.value}
+            style={{ fontFamily: f.value === "Default" ? undefined : f.value }}
+          >
             {f.label}
           </option>
         ))}

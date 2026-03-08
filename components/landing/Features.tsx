@@ -115,6 +115,7 @@ function AIVisual() {
         </p>
         <svg viewBox="0 0 300 120" className="w-full" aria-hidden="true">
           {scatterPoints.map(([cx, cy, fill], i) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: static scatter data, order never changes
             <circle key={i} cx={cx} cy={cy} r="6" fill={fill} fillOpacity="0.65" />
           ))}
         </svg>
@@ -205,6 +206,7 @@ function CreateVisual() {
       <div className="flex bg-gray-50 border-b border-gray-200 text-xs font-medium text-gray-500">
         {["", "Customer", "Order number", "RRP"].map((h, i) => (
           <div
+            // biome-ignore lint/suspicious/noArrayIndexKey: static header row, order never changes
             key={i}
             className={`border-r border-gray-200 px-2.5 py-1.5 ${i === 0 ? "w-7 text-center" : "flex-1"}`}
           >
@@ -216,6 +218,7 @@ function CreateVisual() {
       {/* Grid rows */}
       {createRows.map((row, ri) => (
         <div
+          // biome-ignore lint/suspicious/noArrayIndexKey: static demo rows, order never changes
           key={ri}
           className={`flex border-b border-gray-100 text-xs ${ri === 1 ? "bg-blue-50/40" : ""}`}
         >
@@ -308,9 +311,11 @@ function CollabVisual() {
       {/* Grid */}
       <div className="overflow-hidden rounded-lg border border-gray-200 text-xs mb-3">
         {collabGrid.map((row, ri) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: static demo grid, order never changes
           <div key={ri} className="flex border-b border-gray-100 last:border-b-0">
             {row.map((cell, ci) => (
               <div
+                // biome-ignore lint/suspicious/noArrayIndexKey: static demo grid, order never changes
                 key={ci}
                 className={`px-2.5 py-1.5 border-r border-gray-100 last:border-r-0 ${
                   ri === 0 || ci === 0

@@ -51,9 +51,11 @@ export function ContextMenu({ visible, x, y, items, onClose }: ContextMenuProps)
     >
       {items.map((item, i) =>
         item.divider ? (
+          // biome-ignore lint/suspicious/noArrayIndexKey: static menu items, order never changes
           <div key={i} className="h-px bg-gray-100 my-1" role="separator" />
         ) : (
           <button
+            // biome-ignore lint/suspicious/noArrayIndexKey: static menu items, order never changes
             key={i}
             type="button"
             role="menuitem"

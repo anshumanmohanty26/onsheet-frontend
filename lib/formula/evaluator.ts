@@ -50,7 +50,26 @@ function buildContext(cells: CellMap, visiting: Set<string>): EvalContext {
     return vals;
   };
 
-  return { cells, resolve, resolveRange };
+  const resolveRange2D = (startRef: string, endRef: string): FormulaValue[][] => {
+    const s = parseCellRef(startRef);
+    const e = parseCellRef(endRef);
+    if (!s || !e) return [];
+    const rMin = Math.min(s.row, e.row);
+    const rMax = Math.max(s.row, e.row);
+    const cMin = Math.min(s.col, e.col);
+    const cMax = Math.max(s.col, e.col);
+    const rows: FormulaValue[][] = [];
+    for (let r = rMin; r <= rMax; r++) {
+      const row: FormulaValue[] = [];
+      for (let c = cMin; c <= cMax; c++) {
+        row.push(resolve(cellRef(r, c)));
+      }
+      rows.push(row);
+    }
+    return rows;
+  };
+
+  return { cells, resolve, resolveRange, resolveRange2D };
 }
 
 function evalNode(node: ASTNode, ctx: EvalContext): FormulaValue {
@@ -83,6 +102,36 @@ function evalNode(node: ASTNode, ctx: EvalContext): FormulaValue {
     case "function_call": {
       const fn = FUNCTIONS[node.name];
       if (!fn) return "#NAME?";
+
+      // VLOOKUP / HLOOKUP need the table as a 2D structure, not flattened.
+      // Handle them directly before the generic flat-expansion path.
+      if ((node.name === "VLOOKUP" || node.name === "HLOOKUP") && node.args.length >= 3) {
+        const tableArg = node.args[1];
+        if (tableArg?.type === "range_ref") {
+          const searchVal = evalNode(node.args[0], ctx);
+          const table2D = ctx.resolveRange2D(tableArg.start, tableArg.end);
+          const lookupIdx = Number(evalNode(node.args[2], ctx)) - 1;
+          if (node.name === "VLOOKUP") {
+            for (const row of table2D) {
+              if (row[0] === searchVal || String(row[0]) === String(searchVal)) {
+                return lookupIdx >= 0 && lookupIdx < row.length
+                  ? (row[lookupIdx] ?? "#REF!")
+                  : "#REF!";
+              }
+            }
+            return "#N/A";
+          }
+          // HLOOKUP: search across the first row, return value from lookupIdx-th row
+          const firstRow = table2D[0] ?? [];
+          for (let c = 0; c < firstRow.length; c++) {
+            if (firstRow[c] === searchVal || String(firstRow[c]) === String(searchVal)) {
+              return lookupIdx < table2D.length ? (table2D[lookupIdx][c] ?? "#REF!") : "#REF!";
+            }
+          }
+          return "#N/A";
+        }
+      }
+
       // Expand range args into flat value arrays
       const args: FormulaValue[] = [];
       for (const arg of node.args) {

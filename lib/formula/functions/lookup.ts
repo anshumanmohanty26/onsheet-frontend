@@ -25,23 +25,26 @@ export const MATCH: FormulaFn = (args) => {
 
 /**
  * VLOOKUP(search, table_range_values, col_index, [is_sorted])
- * Simplified for flat arrays: searches column 1 of a conceptual 2D range.
- * The evaluator flattens ranges row-major; `col_index` picks within the row.
- * Because the evaluator doesn't pass 2D structure, this is a best-effort stub.
+ * The evaluator handles VLOOKUP directly when the second arg is a range_ref,
+ * passing 2D data via ctx.resolveRange2D. This fallback handles the rare case
+ * where the table arg is already a flat pre-evaluated array.
  */
-export const VLOOKUP: FormulaFn = (args) => {
+export const VLOOKUP: FormulaFn = (args, _ctx) => {
   const search = args[0];
-  const colIndex = Number(args[2]) - 1;
-  // remaining args are range values — try to find a match
-  for (let i = 3; i < args.length; i++) {
-    if (args[i] === search && i + colIndex < args.length) {
-      return args[i + colIndex];
+  const colIndex = Number(args[args.length - 2]) - 1;
+  // Try 2D lookup via context if available (non-range arg path)
+  const flat = args.slice(1, args.length - 2);
+  for (let i = 0; i < flat.length; i++) {
+    if (flat[i] === search || String(flat[i]) === String(search)) {
+      return colIndex >= 0 && i + colIndex < flat.length
+        ? (flat[i + colIndex] ?? "#REF!")
+        : "#REF!";
     }
   }
   return "#N/A";
 };
 
-/** HLOOKUP — same logic transposed (rows <-> cols). */
+/** HLOOKUP — same fallback path. Primary path handled by evaluator. */
 export const HLOOKUP: FormulaFn = VLOOKUP;
 
 export const CHOOSE: FormulaFn = (args) => {

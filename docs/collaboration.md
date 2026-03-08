@@ -177,7 +177,7 @@ sequenceDiagram
 ```
 
 - `PresenceTracker` is a simple `Map<userId, CollabUser>` with subscriber pattern
-- Cursor state is **ephemeral** — not stored in DB, lost on disconnect/reconnect
+- Cursor state is **ephemeral on the client** — not stored in the browser. On the server, the latest cursor position is persisted in the Redis presence hash (`presence:room:{sheetId}`) and is included in `sheet:users` when a new user joins, so late-joiners see current cursor positions.
 
 ---
 

@@ -22,6 +22,7 @@ export function AiPanel({ sheetId, onClose, onActions }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: messages is the intentional trigger for scroll-to-bottom
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -80,6 +81,7 @@ export function AiPanel({ sheetId, onClose, onActions }: Props) {
         )}
         {messages.map((m, i) => (
           <div
+            // biome-ignore lint/suspicious/noArrayIndexKey: messages are append-only, order never changes
             key={i}
             className={`flex flex-col gap-0.5 animate-slide-up ${m.role === "user" ? "items-end" : "items-start"}`}
           >

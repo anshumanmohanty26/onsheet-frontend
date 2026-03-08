@@ -17,6 +17,7 @@
  */
 
 import { env } from "@/config/env";
+import { useAuth } from "@/lib/auth/AuthContext";
 import { CrdtDoc, type CrdtEntry } from "@/lib/collaboration/crdt";
 import { PresenceTracker } from "@/lib/collaboration/presence";
 import { SocketManager } from "@/lib/collaboration/socket";
@@ -27,7 +28,7 @@ import { historyReducer, initialHistoryState } from "@/store/historyStore";
 import type { SpreadsheetAction } from "@/store/spreadsheetStore";
 import type { CellStyle } from "@/types/cell";
 import type { CollabUser } from "@/types/collaboration";
-import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 
 interface UseCollaborationOptions {
   sheetId: string | null;
@@ -64,6 +65,11 @@ export function useCollaboration({
   workbookId,
   spreadsheetDispatch,
 }: UseCollaborationOptions) {
+  const { user } = useAuth();
+  // Keep a ref so the socket message closure always reads the latest userId
+  // without needing to be in the effect dependency array.
+  const localUserIdRef = useRef<string | null>(null);
+  localUserIdRef.current = user?.id ?? null;
   const peerId = useMemo(generatePeerId, []);
   const doc = useMemo(() => new CrdtDoc(peerId), [peerId]);
   const history = useMemo(() => new HistoryManager(), []);
@@ -73,21 +79,37 @@ export function useCollaboration({
   const sheetIdRef = useRef(sheetId);
   sheetIdRef.current = sheetId;
 
+  const [pendingWrites, setPendingWrites] = useState(0);
+
   const [collab, collabDispatch] = useReducer(collabReducer, {
     ...initialCollabState,
     localPeerId: peerId,
   });
   const [histState, histDispatch] = useReducer(historyReducer, initialHistoryState);
 
+  // When auth loads after the socket has already received sheet:users,
+  // purge any self-entry that slipped through the null-id filter.
+  useEffect(() => {
+    if (user?.id) {
+      collabDispatch({ type: "PURGE_USER_BY_ID", userId: user.id });
+    }
+  }, [user?.id]);
+
   // Connect / disconnect Socket.IO when sheetId changes
+  // biome-ignore lint/correctness/useExhaustiveDependencies: doc.currentClock/doc.merge intentionally excluded — adding them would reconnect the socket on every cell edit; peerId is stable for the session
   useEffect(() => {
     if (!sheetId) return;
 
     const socket = new SocketManager(getServerUrl());
     socketRef.current = socket;
 
+    // Track our own socket ID so we can reliably filter self from presence lists
+    // without depending on auth state timing.
+    const mySocketIdRef = { current: null as string | null };
+
     // Emit sheet:join on every connect / reconnect
     const unsubConnect = socket.onConnect(() => {
+      mySocketIdRef.current = socket.socketId;
       socket.send("sheet:join", { sheetId, workbookId });
       collabDispatch({ type: "SET_CONNECTED", connected: true });
     });
@@ -104,10 +126,17 @@ export function useCollaboration({
             socketId: string;
             color?: string;
           }>;
+
           const mapped: CollabUser[] = users
-            .filter((u) => u.userId && u.userId !== peerId)
+            .filter((u) => {
+              const keepSocketId = u.socketId !== mySocketIdRef.current;
+              // Only apply userId exclusion when userId is actually present
+              const keepUserId = !u.userId || u.userId !== localUserIdRef.current;
+              return keepSocketId && keepUserId;
+            })
             .map((u) => ({
               id: u.userId,
+              socketId: u.socketId,
               name: u.displayName ?? "User",
               color: u.color ?? pickColor(u.userId),
             }));
@@ -116,7 +145,7 @@ export function useCollaboration({
         }
         case "user:left": {
           const { socketId } = payload as { socketId: string };
-          collabDispatch({ type: "USER_LEAVE", userId: socketId });
+          collabDispatch({ type: "USER_LEAVE", socketId });
           presence.remove(socketId);
           break;
         }
@@ -127,7 +156,7 @@ export function useCollaboration({
             col: number;
           };
           const ref = cellRef(row, col);
-          collabDispatch({ type: "USER_CURSOR", userId: socketId, cellRef: ref });
+          collabDispatch({ type: "USER_CURSOR", socketId, cellRef: ref });
           break;
         }
 
@@ -191,10 +220,12 @@ export function useCollaboration({
           break;
 
         case "disconnect":
+          setPendingWrites(0);
           collabDispatch({ type: "SET_CONNECTED", connected: false });
           break;
 
         case "cell:confirmed":
+          setPendingWrites((n) => Math.max(0, n - 1));
           break;
 
         case "sheet:created": {
@@ -275,6 +306,7 @@ export function useCollaboration({
             style: style ?? entry.style,
           },
         });
+        setPendingWrites((n) => n + 1);
       }
 
       // 5. Update undo/redo availability
@@ -361,6 +393,7 @@ export function useCollaboration({
   return {
     collab,
     histState,
+    pendingWrites,
     setCellCrdt,
     undo,
     redo,

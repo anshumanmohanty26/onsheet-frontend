@@ -13,6 +13,7 @@ interface CellEditorProps {
 export function CellEditor({ value, onChange, onCommit, onCancel }: CellEditorProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: mount-only focus — value.length intentionally excluded to avoid re-focusing on every keystroke
   useEffect(() => {
     inputRef.current?.focus();
     // Place cursor at end

@@ -84,6 +84,7 @@ export function SpreadsheetMockup() {
         <div className="ml-auto flex -space-x-2" aria-label="Active collaborators">
           {["#059669", "#7c3aed", "#ea580c"].map((color, i) => (
             <span
+              // biome-ignore lint/suspicious/noArrayIndexKey: static avatar list, order never changes
               key={i}
               className="w-6 h-6 rounded-full border-2 border-white dark:border-gray-900 flex items-center justify-center text-white text-[9px] font-bold"
               style={{ backgroundColor: color }}
@@ -116,6 +117,7 @@ export function SpreadsheetMockup() {
             <tr>
               {COLUMNS.map((col, i) => (
                 <th
+                  // biome-ignore lint/suspicious/noArrayIndexKey: static column headers, order never changes
                   key={i}
                   scope="col"
                   className={`border-b border-r border-gray-200 dark:border-gray-700/60 bg-gray-50 dark:bg-gray-800/60 text-center text-gray-500 dark:text-gray-500 font-medium py-1.5 select-none ${
@@ -131,6 +133,7 @@ export function SpreadsheetMockup() {
           <tbody>
             {ROWS.map((row, rowIdx) => (
               <tr
+                // biome-ignore lint/suspicious/noArrayIndexKey: static mock rows, order never changes
                 key={rowIdx}
                 className={
                   rowIdx === 0
@@ -142,6 +145,7 @@ export function SpreadsheetMockup() {
               >
                 {row.map((cell, cellIdx) => (
                   <td
+                    // biome-ignore lint/suspicious/noArrayIndexKey: static mock cells, order never changes
                     key={cellIdx}
                     className={`border-b border-r border-gray-200 dark:border-gray-700/60 px-2 py-1.5 ${
                       cellIdx === 0

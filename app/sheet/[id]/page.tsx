@@ -61,13 +61,21 @@ export default function SheetPage({ params }: PageProps) {
   // canEdit: owner and editors can edit; viewers/commenters cannot
   const canEdit = !state.myRole || state.myRole === "OWNER" || state.myRole === "EDITOR";
 
-  const { collab, setCellCrdt, undo, redo, broadcastCursor, loadIntoCrdt } = useCollaboration({
-    sheetId: state.activeSheetId,
-    workbookId: state.workbookId,
-    spreadsheetDispatch,
-  });
+  const { collab, setCellCrdt, undo, redo, broadcastCursor, loadIntoCrdt, pendingWrites } =
+    useCollaboration({
+      sheetId: state.activeSheetId,
+      workbookId: state.workbookId,
+      spreadsheetDispatch,
+    });
 
   const { selection: sel, setActive, setRange } = useSelection();
+
+  // Broadcast cursor position to collaborators whenever the active cell changes
+  useEffect(() => {
+    if (!sel.active) return;
+    broadcastCursor(cellRef(sel.active.row, sel.active.col));
+  }, [sel.active, broadcastCursor]);
+
   const [ui, uiDispatch] = useReducer(uiReducer, initialUIState);
   const [editingRef, setEditingRef] = useState<string | null>(null);
   // Ref-based mirror of editingRef so commitEdit always reads the correct
@@ -106,6 +114,7 @@ export default function SheetPage({ params }: PageProps) {
   // Once the sheet finishes loading (loading goes false), populate the CRDT doc
   // with the freshly-fetched cells so undo correctly reverts to the prior DB value
   // rather than reverting to an empty string.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: state.cells intentionally omitted — including it would reload the CRDT doc on every collaborator edit causing an infinite loop
   useEffect(() => {
     if (state.loading || !state.activeSheetId) return;
     loadIntoCrdt(
@@ -120,17 +129,25 @@ export default function SheetPage({ params }: PageProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.loading, state.activeSheetId, loadIntoCrdt]); // state.cells intentionally omitted
 
+  // Derive the active cell's raw value as a stable primitive so the formula
+  // bar effect only re-fires when THIS specific cell changes, not when any
+  // collaborator edits an unrelated cell (which would give state.cells a new
+  // reference and previously caused a Maximum update depth exceeded loop).
+  const activeCellRaw = sel.active
+    ? (state.cells[cellRef(sel.active.row, sel.active.col)]?.raw ?? "")
+    : null;
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: sel.active is needed so the effect fires when the selected cell changes even if activeCellRaw coincidentally equals the previous value
   useEffect(() => {
     // Do not overwrite the formula bar while the user is actively editing —
     // doing so would discard in-progress keystrokes.
     if (editingCellRef.current) return;
-    if (!sel.active) {
+    if (activeCellRaw === null) {
       uiDispatch({ type: "SET_FORMULA_BAR", value: "" });
       return;
     }
-    const cell = state.cells[cellRef(sel.active.row, sel.active.col)];
-    uiDispatch({ type: "SET_FORMULA_BAR", value: cell?.raw ?? "" });
-  }, [sel.active, state.cells]);
+    uiDispatch({ type: "SET_FORMULA_BAR", value: activeCellRaw });
+  }, [sel.active, activeCellRaw]);
 
   useEffect(() => {
     if (!sel.active) return;
@@ -155,7 +172,7 @@ export default function SheetPage({ params }: PageProps) {
         value: char !== undefined ? char : (state.cells[ref]?.raw ?? ""),
       });
     },
-    [state.cells],
+    [state.cells, setActive],
   );
 
   const commitEdit = useCallback(
@@ -335,8 +352,7 @@ export default function SheetPage({ params }: PageProps) {
       // If right-clicking the cell currently being edited, just show the menu
       // without calling setActive — that would change sel.active's reference,
       // triggering the formula-bar sync effect and wiping the in-progress value.
-      const editingThisCell =
-        editingCellRef.current === cellRef(coord.row, coord.col);
+      const editingThisCell = editingCellRef.current === cellRef(coord.row, coord.col);
       if (!editingThisCell) {
         if (editingCellRef.current) commitEdit(formulaValueRef.current);
         setActive(coord);
@@ -480,6 +496,8 @@ export default function SheetPage({ params }: PageProps) {
         onRename={renameWorkbook}
         onAiToggle={() => setShowAiPanel((v) => !v)}
         aiOpen={showAiPanel}
+        collaborators={collab.users}
+        canManage={state.myRole === "OWNER"}
       />
 
       <MenuBar
@@ -613,6 +631,7 @@ export default function SheetPage({ params }: PageProps) {
               frozenRows={view.frozenRows}
               commentedCells={commentedCells}
               onCommentClick={(coord) => setCommentCell({ row: coord.row, col: coord.col })}
+              collaborators={collab.users}
             />
           )}
 
@@ -628,9 +647,15 @@ export default function SheetPage({ params }: PageProps) {
           {/* Collab connection indicator */}
           <div className="flex items-center gap-1.5 px-3 py-1 border-t border-gray-100 bg-gray-50 text-[11px] text-gray-400 shrink-0">
             <span
-              className={`size-1.5 rounded-full ${collab.connected ? "bg-emerald-400" : "bg-red-400"}`}
+              className={`size-1.5 rounded-full ${
+                !collab.connected
+                  ? "bg-red-400"
+                  : pendingWrites > 0
+                    ? "bg-amber-400 animate-pulse"
+                    : "bg-emerald-400"
+              }`}
             />
-            {collab.connected ? "Live" : "Offline"}
+            {!collab.connected ? "Offline" : pendingWrites > 0 ? "Saving…" : "Saved ✓"}
             {collab.users.length > 0 && (
               <span className="ml-2 text-gray-400">
                 · {collab.users.length} other{collab.users.length > 1 ? "s" : ""} editing

@@ -14,6 +14,7 @@ export default function SheetLoading() {
       {/* Menu bar skeleton */}
       <div className="flex items-center gap-2 px-2 py-1 border-b border-gray-200">
         {Array.from({ length: 8 }, (_, i) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton, order never changes
           <div key={i} className="w-10 h-4 bg-gray-100 rounded" />
         ))}
       </div>
@@ -21,6 +22,7 @@ export default function SheetLoading() {
       {/* Toolbar skeleton */}
       <div className="flex items-center gap-1 px-2 h-9 border-b border-gray-200">
         {Array.from({ length: 12 }, (_, i) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton, order never changes
           <div key={i} className="w-7 h-7 bg-gray-100 rounded" />
         ))}
       </div>
@@ -36,6 +38,7 @@ export default function SheetLoading() {
       <div className="flex-1 p-0">
         <div className="grid grid-cols-8 gap-px bg-gray-200 h-full">
           {Array.from({ length: 64 }, (_, i) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton, order never changes
             <div key={i} className="bg-white" />
           ))}
         </div>

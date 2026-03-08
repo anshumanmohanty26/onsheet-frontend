@@ -26,6 +26,11 @@ export class SocketManager {
     return this.socket?.connected ?? false;
   }
 
+  /** The socket.io-assigned socket ID for this connection (null until connected). */
+  get socketId(): string | null {
+    return this.socket?.id ?? null;
+  }
+
   connect(): void {
     if (this.socket) return;
     this.socket = io(`${this.serverUrl}${this.namespace}`, {

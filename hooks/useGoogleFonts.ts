@@ -20,7 +20,9 @@ export function useGoogleFonts() {
     if (typeof document === "undefined") return;
     if (document.getElementById(LINK_ID)) return; // already injected
 
-    const families = GOOGLE_FONT_FAMILIES.map((f) => `family=${f.replace(/ /g, "+")}:wght@400;700`).join("&");
+    const families = GOOGLE_FONT_FAMILIES.map(
+      (f) => `family=${f.replace(/ /g, "+")}:wght@400;700`,
+    ).join("&");
     const href = `https://fonts.googleapis.com/css2?${families}&display=swap`;
 
     const link = document.createElement("link");

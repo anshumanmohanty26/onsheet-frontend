@@ -10,8 +10,10 @@ export type CollabAction =
   | { type: "SET_CONNECTED"; connected: boolean }
   | { type: "SET_USERS"; users: CollabUser[] }
   | { type: "USER_JOIN"; user: CollabUser }
-  | { type: "USER_LEAVE"; userId: string }
-  | { type: "USER_CURSOR"; userId: string; cellRef: string };
+  | { type: "USER_LEAVE"; socketId: string }
+  | { type: "USER_CURSOR"; socketId: string; cellRef: string }
+  /** Remove any entry whose id matches — used to purge self when auth loads late. */
+  | { type: "PURGE_USER_BY_ID"; userId: string };
 
 export function generatePeerId(): string {
   return `peer_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -30,9 +32,14 @@ export function collabReducer(state: CollaborationState, action: CollabAction): 
     case "SET_USERS":
       return { ...state, users: action.users };
     case "USER_JOIN":
-      if (state.users.some((u) => u.id === action.user.id)) return state;
+      if (state.users.some((u) => u.socketId === action.user.socketId)) return state;
       return { ...state, users: [...state.users, action.user] };
     case "USER_LEAVE":
+      return {
+        ...state,
+        users: state.users.filter((u) => u.socketId !== action.socketId),
+      };
+    case "PURGE_USER_BY_ID":
       return {
         ...state,
         users: state.users.filter((u) => u.id !== action.userId),
@@ -41,7 +48,7 @@ export function collabReducer(state: CollaborationState, action: CollabAction): 
       return {
         ...state,
         users: state.users.map((u) =>
-          u.id === action.userId ? { ...u, activeCellRef: action.cellRef } : u,
+          u.socketId === action.socketId ? { ...u, activeCellRef: action.cellRef } : u,
         ),
       };
     default:
