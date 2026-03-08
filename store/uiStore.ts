@@ -21,8 +21,10 @@ export const initialUIState: UIState = {
 export function uiReducer(state: UIState, action: UIAction): UIState {
   switch (action.type) {
     case "SET_FORMULA_BAR":
+      if (state.formulaBarValue === action.value) return state;
       return { ...state, formulaBarValue: action.value };
     case "SET_EDITING":
+      if (state.isEditingCell === action.editing) return state;
       return { ...state, isEditingCell: action.editing };
     case "SHOW_CONTEXT_MENU":
       return { ...state, showContextMenu: true, contextMenuPos: action.pos };

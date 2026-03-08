@@ -23,8 +23,8 @@ export function Tooltip({ content, children, side = "bottom" }: TooltipProps) {
         <div
           className={`absolute z-50 px-2 py-1 text-[11px] text-white bg-gray-800 rounded shadow whitespace-nowrap pointer-events-none ${
             side === "top"
-              ? "bottom-full left-1/2 -translate-x-1/2 mb-1"
-              : "top-full left-1/2 -translate-x-1/2 mt-1"
+              ? "bottom-full left-1/2 -translate-x-1/2 mb-1 animate-tooltip-in-top"
+              : "top-full left-1/2 -translate-x-1/2 mt-1 animate-tooltip-in"
           }`}
           role="tooltip"
         >

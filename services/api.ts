@@ -48,10 +48,12 @@ async function request<T>(
       return request<T>(path, init, true /* isRetry */);
     }
     // Refresh failed — clear the session marker and redirect to login
+    // Skip redirect on public share pages — no login needed.
     if (typeof window !== "undefined") {
       const { pathname } = window.location;
       const isAuthRoute = pathname === "/login" || pathname === "/signup";
-      if (!isAuthRoute) {
+      const isPublicRoute = pathname.startsWith("/share/");
+      if (!isAuthRoute && !isPublicRoute) {
         document.cookie = "session=; path=/; max-age=0";
         window.location.href = "/login";
       }

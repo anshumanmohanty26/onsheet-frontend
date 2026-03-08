@@ -6,11 +6,17 @@ import {
   initialSelectionState,
   selectionReducer,
 } from "@/store";
+import { SocketManager } from "@/lib/collaboration/socket";
 import { GRID } from "@/constants/defaults";
 import { env } from "@/config/env";
 import { cellRef } from "@/lib/utils/coordinates";
 import type { CellCoord } from "@/types/selection";
-import type { CellMap } from "@/types/cell";
+import type { CellData, CellMap } from "@/types/cell";
+
+/** Base server URL — strips /api/v1 suffix */
+function getServerUrl(): string {
+  return env.apiUrl.replace(/\/api\/v1\/?$/, "");
+}
 
 interface PublicSheet {
   id: string;
@@ -100,6 +106,43 @@ export default function SharePage({ params }: PageProps) {
       .then(setCells)
       .catch(() => setCells({}));
   }, [shareToken, activeSheetId]);
+
+  // ── Real-time updates via Socket.IO (read-only, guest connection) ─────────
+  useEffect(() => {
+    if (!activeSheetId) return;
+
+    const socket = new SocketManager(getServerUrl());
+
+    const unsubConnect = socket.onConnect(() => {
+      socket.send("sheet:join", { sheetId: activeSheetId, displayName: "Viewer" });
+    });
+
+    const unsubMessage = socket.onMessage((type, payload) => {
+      if (type === "cell:updated") {
+        const update = payload as {
+          cell: { row: number; col: number; rawValue?: string; computed?: string; style?: CellData["style"] };
+        };
+        const ref = cellRef(update.cell.row, update.cell.col);
+        const raw = update.cell.rawValue ?? "";
+        setCells((prev) => ({
+          ...prev,
+          [ref]: {
+            raw,
+            computed: update.cell.computed ?? raw,
+            style: update.cell.style,
+          },
+        }));
+      }
+    });
+
+    socket.connect();
+
+    return () => {
+      unsubConnect();
+      unsubMessage();
+      socket.disconnect();
+    };
+  }, [activeSheetId]);
 
   const handleCellClick = useCallback((coord: CellCoord) => {
     selDispatch({ type: "SET_ACTIVE", coord });

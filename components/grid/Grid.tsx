@@ -46,6 +46,10 @@ interface GridProps {
   zoom?: number;
   /** Number of leading rows to freeze as sticky (default 0). */
   frozenRows?: number;
+  /** Set of cellRef keys (e.g. "A1") that have at least one comment. */
+  commentedCells?: Set<string>;
+  /** Fired when the user clicks the comment indicator triangle. */
+  onCommentClick?: (coord: CellCoord) => void;
 }
 
 function applyCellStyle(style?: CellStyle): React.CSSProperties {
@@ -111,6 +115,8 @@ export function Grid({
   showHeaders = true,
   zoom = 100,
   frozenRows = 0,
+  commentedCells,
+  onCommentClick,
 }: GridProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
@@ -283,6 +289,13 @@ export function Grid({
                           style={applyCellStyle(cell?.style)}
                         >{display}</div>
                       )}
+                      {commentedCells?.has(ref) && (
+                        <button
+                          className="absolute top-0 right-0 w-0 h-0 border-t-[8px] border-t-orange-400 border-l-[8px] border-l-transparent cursor-pointer z-[5] hover:border-t-orange-500"
+                          title="View comments"
+                          onClick={(e) => { e.stopPropagation(); onCommentClick?.({ row, col }); }}
+                        />
+                      )}
                     </td>
                   );
                 })}
@@ -389,6 +402,13 @@ export function Grid({
                         >
                           {display}
                         </div>
+                      )}
+                      {commentedCells?.has(ref) && (
+                        <button
+                          className="absolute top-0 right-0 w-0 h-0 border-t-[8px] border-t-orange-400 border-l-[8px] border-l-transparent cursor-pointer z-[5] hover:border-t-orange-500"
+                          title="View comments"
+                          onClick={(e) => { e.stopPropagation(); onCommentClick?.({ row, col }); }}
+                        />
                       )}
                     </td>
                   );

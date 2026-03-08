@@ -75,12 +75,12 @@ export function CommentModal({ sheetId, row, col, onClose }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 animate-fade-in"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="bg-white rounded-xl shadow-xl w-[420px] max-h-[70vh] flex flex-col border border-gray-200">
+      <div className="bg-white rounded-xl shadow-xl w-[420px] max-h-[70vh] flex flex-col border border-gray-200 animate-fade-in-scale">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100">
           <h2 className="text-sm font-semibold text-gray-900">
@@ -142,7 +142,7 @@ export function CommentModal({ sheetId, row, col, onClose }: Props) {
             }}
             placeholder="Add a comment…"
             rows={2}
-            className="w-full text-xs border border-gray-200 rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-emerald-400"
+            className="w-full text-xs text-gray-800 border border-gray-200 rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-emerald-400"
           />
           <div className="flex justify-end">
             <button

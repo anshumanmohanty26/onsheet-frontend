@@ -27,7 +27,9 @@ export type SpreadsheetAction =
   /** Sort all rows by the value in `col`, ascending or descending. */
   | { type: "SORT_COLUMN"; col: number; ascending: boolean }
   /** Remove rows with duplicate values in `col`, keeping first occurrence. */
-  | { type: "REMOVE_DUPLICATES"; col: number };
+  | { type: "REMOVE_DUPLICATES"; col: number }
+  /** Bulk-replace all cells — used when importing a file. */
+  | { type: "IMPORT_CELLS"; cells: Record<string, CellData> };
 
 export const DEFAULT_COL_WIDTH = 100;
 export const DEFAULT_ROW_HEIGHT = 25;
@@ -83,6 +85,8 @@ export function spreadsheetReducer(
         ...state,
         cells: { ...state.cells, [action.ref]: action.data },
       };
+    case "IMPORT_CELLS":
+      return { ...state, cells: action.cells };
     case "SET_WORKBOOK_NAME":
       return { ...state, workbookTitle: action.name };
     case "SET_COLUMN_WIDTH":

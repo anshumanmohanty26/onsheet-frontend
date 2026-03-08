@@ -62,12 +62,12 @@ export function KeyboardShortcutsModal({ onClose }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 animate-fade-in"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="bg-white rounded-xl shadow-xl w-[520px] max-h-[80vh] overflow-y-auto border border-gray-200">
+      <div className="bg-white rounded-xl shadow-xl w-[520px] max-h-[80vh] overflow-y-auto border border-gray-200 animate-fade-in-scale">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 sticky top-0 bg-white z-10">
           <h2 className="text-sm font-semibold text-gray-900">Keyboard shortcuts</h2>

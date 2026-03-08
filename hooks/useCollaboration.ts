@@ -87,6 +87,7 @@ export function useCollaboration({
 
     // Emit sheet:join on every connect / reconnect
     const unsubConnect = socket.onConnect(() => {
+      console.log("[collab] socket connected, joining sheet:", sheetId);
       socket.send("sheet:join", { sheetId });
       collabDispatch({ type: "SET_CONNECTED", connected: true });
     });
@@ -132,6 +133,7 @@ export function useCollaboration({
 
         // ── Cell updates ──────────────────────────────────────────────────
         case "cell:updated": {
+          console.log("[collab] cell:updated received:", JSON.stringify(payload));
           // payload: { userId, cell: { row, col, rawValue, computed, style, version } }
           const update = payload as {
             userId?: string;
@@ -181,6 +183,28 @@ export function useCollaboration({
         case "ops:catchup":
           break;
 
+        case "connect_error":
+          console.warn("[collab] connect_error:", payload);
+          collabDispatch({ type: "SET_CONNECTED", connected: false });
+          break;
+
+        case "disconnect":
+          console.warn("[collab] disconnected:", payload);
+          collabDispatch({ type: "SET_CONNECTED", connected: false });
+          break;
+
+        case "cell:confirmed":
+          console.log("[collab] cell:confirmed:", JSON.stringify(payload));
+          break;
+
+        case "exception":
+          console.error("[collab] server exception:", JSON.stringify(payload));
+          break;
+
+        case "collab:error":
+          console.error("[collab] server error:", payload);
+          break;
+
         default:
           break;
       }
@@ -228,6 +252,7 @@ export function useCollaboration({
       // 4. Broadcast to backend — use the correct Socket.IO event/payload
       const parsed = parseCellRef(ref);
       if (parsed && sheetIdRef.current) {
+        console.log("[collab] sending cell:update", ref, "to sheet", sheetIdRef.current, "connected:", socketRef.current?.connected);
         socketRef.current?.send("cell:update", {
           sheetId: sheetIdRef.current,
           cell: {

@@ -45,7 +45,7 @@ export function ContextMenu({ visible, x, y, items, onClose }: ContextMenuProps)
   return (
     <div
       ref={menuRef}
-      className="fixed z-50 min-w-[180px] bg-white rounded-lg shadow-lg border border-gray-200 py-1 animate-in fade-in zoom-in-95 duration-100"
+      className="fixed z-50 min-w-[180px] bg-white rounded-lg shadow-lg border border-gray-200 py-1 animate-fade-in-scale"
       style={{ left: x, top: y }}
       role="menu"
     >

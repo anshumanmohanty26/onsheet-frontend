@@ -10,7 +10,8 @@ export interface MenuBarProps {
   onCopy?: () => void;
   onPaste?: () => void;
   // File
-  onDownloadCsv?: () => void;
+  onImport?: () => void;
+  onExport?: (format: string) => void;
   onShare?: () => void;
   onVersionHistory?: () => void;
   // Insert
@@ -116,7 +117,7 @@ function Dropdown({ items, onClose }: { items: DropdownItem[]; onClose: () => vo
 
 export function MenuBar({
   onUndo, onRedo, onCut, onCopy, onPaste,
-  onDownloadCsv, onShare, onVersionHistory,
+  onImport, onExport, onShare, onVersionHistory,
   onInsertRowAbove, onInsertRowBelow, onInsertColLeft, onInsertColRight, onInsertComment,
   showGridlines = true, onToggleGridlines,
   showFormulaBar = true, onToggleFormulaBar,
@@ -141,7 +142,15 @@ export function MenuBar({
       items: [
         { label: "New spreadsheet", shortcut: "⌘N", onClick: () => window.open("/dashboard", "_blank") },
         { label: "", divider: true },
-        { label: "Download as CSV", onClick: onDownloadCsv, disabled: !onDownloadCsv },
+        { label: "Import spreadsheet", onClick: onImport, disabled: !onImport },
+        { label: "", divider: true },
+        { label: "Download as CSV (.csv)", onClick: () => onExport?.("csv"), disabled: !onExport },
+        { label: "Download as Excel (.xlsx)", onClick: () => onExport?.("xlsx"), disabled: !onExport },
+        { label: "Download as PDF (.pdf)", onClick: () => onExport?.("pdf"), disabled: !onExport },
+        { label: "Download as ODS (.ods)", onClick: () => onExport?.("ods"), disabled: !onExport },
+        { label: "Download as TSV (.tsv)", onClick: () => onExport?.("tsv"), disabled: !onExport },
+        { label: "Download as JSON (.json)", onClick: () => onExport?.("json"), disabled: !onExport },
+        { label: "", divider: true },
         { label: "Copy share link", shortcut: "⌘⇧S", onClick: onShare, disabled: !onShare },
         { label: "", divider: true },
         { label: "Version history", shortcut: "⌘⌥H", onClick: onVersionHistory, disabled: !onVersionHistory },

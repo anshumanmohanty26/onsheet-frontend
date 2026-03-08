@@ -1,20 +1,21 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { aiService } from "@/services/aiService";
+import { aiService, type AgentAction } from "@/services/aiService";
 
 interface Message {
   role: "user" | "assistant";
   text: string;
-  toolsUsed?: string[];
+  actionsCount?: number;
 }
 
 interface Props {
   sheetId: string | null;
   onClose: () => void;
+  onActions?: (actions: AgentAction[]) => void;
 }
 
-export function AiPanel({ sheetId, onClose }: Props) {
+export function AiPanel({ sheetId, onClose, onActions }: Props) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -39,10 +40,14 @@ export function AiPanel({ sheetId, onClose }: Props) {
 
     try {
       const result = await aiService.ask(sheetId, query);
+      const actionsCount = result.actions?.length ?? 0;
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", text: result.answer, toolsUsed: result.toolsUsed },
+        { role: "assistant", text: result.answer, actionsCount },
       ]);
+      if (actionsCount > 0 && onActions) {
+        onActions(result.actions);
+      }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to get a response.";
       setMessages((prev) => [
@@ -55,7 +60,7 @@ export function AiPanel({ sheetId, onClose }: Props) {
   }
 
   return (
-    <div className="fixed right-0 top-12 bottom-0 w-80 bg-white border-l border-gray-200 shadow-xl z-40 flex flex-col">
+    <div className="w-80 shrink-0 bg-white border-l border-gray-200 flex flex-col animate-slide-in-right">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 shrink-0">
         <div className="flex items-center gap-2">
@@ -74,12 +79,12 @@ export function AiPanel({ sheetId, onClose }: Props) {
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
         {messages.length === 0 && (
-          <div className="text-xs text-gray-400 text-center mt-8 leading-relaxed">
-            Ask anything about this sheet — formulas, insights, analysis, anomalies.
+          <div className="text-xs text-gray-400 text-center mt-8 leading-relaxed animate-fade-in">
+            Ask me to fill data, create tables, add formulas, analyse your sheet, or add comments.
           </div>
         )}
         {messages.map((m, i) => (
-          <div key={i} className={`flex flex-col gap-0.5 ${m.role === "user" ? "items-end" : "items-start"}`}>
+          <div key={i} className={`flex flex-col gap-0.5 animate-slide-up ${m.role === "user" ? "items-end" : "items-start"}`}>
             <div
               className={`text-xs px-3 py-2 rounded-xl max-w-[90%] whitespace-pre-wrap leading-relaxed ${
                 m.role === "user"
@@ -89,15 +94,15 @@ export function AiPanel({ sheetId, onClose }: Props) {
             >
               {m.text}
             </div>
-            {m.toolsUsed && m.toolsUsed.length > 0 && (
-              <div className="text-[10px] text-gray-400 px-1">
-                Used: {m.toolsUsed.join(", ")}
+            {(m.actionsCount ?? 0) > 0 && (
+              <div className="text-[10px] text-emerald-500 px-1 font-medium">
+                ✓ {m.actionsCount} change{m.actionsCount! > 1 ? "s" : ""} applied to sheet
               </div>
             )}
           </div>
         ))}
         {loading && (
-          <div className="flex items-start">
+          <div className="flex items-start animate-slide-up">
             <div className="bg-gray-100 rounded-xl rounded-bl-sm px-3 py-2">
               <span className="flex gap-1 items-center">
                 <span className="size-1.5 rounded-full bg-gray-400 animate-bounce [animation-delay:0ms]" />

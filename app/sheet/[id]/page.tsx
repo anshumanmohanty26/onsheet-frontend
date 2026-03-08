@@ -13,7 +13,9 @@ import { KeyboardShortcutsModal } from "@/components/ui/KeyboardShortcutsModal";
 import { FindReplaceModal } from "@/components/ui/FindReplaceModal";
 import { VersionHistoryModal } from "@/components/ui/VersionHistoryModal";
 import { AiPanel } from "@/components/header/AiPanel";
+import type { AgentAction } from "@/services/aiService";
 import { CommentModal } from "@/components/ui/CommentModal";
+import { commentService } from "@/services/commentService";
 import { evaluate } from "@/lib/formula/evaluator";
 import { isFormula } from "@/lib/cell/validator";
 import { useSpreadsheet } from "@/hooks/useSpreadsheet";
@@ -32,7 +34,9 @@ import {
   initialUIState,
   uiReducer,
 } from "@/store";
-import { cellRef } from "@/lib/utils/coordinates";
+import { cellRef, parseCellRef } from "@/lib/utils/coordinates";
+import { consumePendingImport } from "@/lib/import/pendingImport";
+import { cellService } from "@/services/cellService";
 import type { CellCoord } from "@/types/selection";
 import type { CellStyle } from "@/types/cell";
 
@@ -52,7 +56,7 @@ export default function SheetPage({ params }: PageProps) {
   const { state, dispatch: spreadsheetDispatch, loadWorkbook, switchSheet, addSheet, deleteSheet, renameWorkbook } =
     useSpreadsheet();
 
-  const { setCellCrdt, undo, redo, broadcastCursor, loadIntoCrdt } = useCollaboration({
+  const { collab, setCellCrdt, undo, redo, broadcastCursor, loadIntoCrdt } = useCollaboration({
     sheetId: state.activeSheetId,
     spreadsheetDispatch,
   });
@@ -65,6 +69,22 @@ export default function SheetPage({ params }: PageProps) {
   // ── Effects ───────────────────────────────────────────────────────────────
 
   useEffect(() => { loadWorkbook(workbookId, initialTabRef.current); }, [workbookId, loadWorkbook]);
+
+  // Optimistic import: if the dashboard stashed parsed data, render it instantly
+  // then persist to DB in the background.
+  const pendingHandled = useRef(false);
+  useEffect(() => {
+    if (state.loading || !state.activeSheetId || pendingHandled.current) return;
+    const pending = consumePendingImport(workbookId);
+    if (!pending) return;
+    pendingHandled.current = true;
+    // Instantly render the imported cells
+    spreadsheetDispatch({ type: "IMPORT_CELLS", cells: pending.cellsForStore });
+    // Persist in the background — user already sees the data
+    cellService.bulkImport(pending.sheetId, pending.cellsForApi).catch(() => {
+      /* persistence failed — cells are visible but not saved; a reload will retry */
+    });
+  }, [state.loading, state.activeSheetId, workbookId, spreadsheetDispatch]);
 
   // Once the sheet finishes loading (loading goes false), populate the CRDT doc
   // with the freshly-fetched cells so undo correctly reverts to the prior DB value
@@ -183,6 +203,7 @@ export default function SheetPage({ params }: PageProps) {
     workbookTitle: state.workbookTitle,
     totalRows,
     activeSheetId: state.activeSheetId,
+    onImportCells: (imported) => spreadsheetDispatch({ type: "IMPORT_CELLS", cells: imported }),
   });
 
   const format = useFormatActions({
@@ -258,6 +279,36 @@ export default function SheetPage({ params }: PageProps) {
   const [showVersionHistory, setShowVersionHistory] = useState(false);
   const [showAiPanel, setShowAiPanel] = useState(false);
   const [commentCell, setCommentCell] = useState<{ row: number; col: number } | null>(null);
+  const [commentedCells, setCommentedCells] = useState<Set<string>>(new Set());
+
+  // Fetch which cells have comments whenever the active sheet changes
+  const refreshComments = useCallback(() => {
+    if (!state.activeSheetId) return;
+    commentService.list(state.activeSheetId).then((comments) => {
+      const refs = new Set(comments.map((c) => cellRef(c.row, c.col)));
+      setCommentedCells(refs);
+    }).catch(() => {});
+  }, [state.activeSheetId]);
+
+  useEffect(() => { refreshComments(); }, [refreshComments]);
+
+  // ── AI action handler ───────────────────────────────────────────────────
+
+  const handleAiActions = useCallback((actions: AgentAction[]) => {
+    for (const action of actions) {
+      if ((action.type === "SET_CELLS" || action.type === "DELETE_CELLS") && action.cells) {
+        for (const [ref, data] of Object.entries(action.cells)) {
+          const parsed = parseCellRef(ref);
+          if (!parsed) continue;
+          const existing = state.cells[ref];
+          setCellCrdt(ref, data.raw, existing?.style, data.raw);
+        }
+      }
+      if (action.type === "ADD_COMMENT") {
+        refreshComments();
+      }
+    }
+  }, [state.cells, setCellCrdt, refreshComments]);
 
   useKeyboard({
     active: sel.active,
@@ -293,7 +344,7 @@ export default function SheetPage({ params }: PageProps) {
 
   if (state.error) {
     return (
-      <div className="flex h-screen items-center justify-center text-red-500 text-sm">
+      <div className="flex h-screen items-center justify-center bg-white text-red-500 text-sm">
         {state.error}
       </div>
     );
@@ -313,7 +364,8 @@ export default function SheetPage({ params }: PageProps) {
         onUndo={undo} onRedo={redo}
         onCut={() => cut()} onCopy={() => copy()}
         onPaste={() => { if (sel.active) paste(sel.active.row, sel.active.col); }}
-        onDownloadCsv={file.handleDownloadCsv}
+        onImport={file.triggerImport}
+        onExport={file.handleExport}
         onShare={file.handleShare}
         onVersionHistory={() => setShowVersionHistory(true)}
         onInsertRowAbove={data.handleInsertRowAbove}
@@ -377,62 +429,90 @@ export default function SheetPage({ params }: PageProps) {
 
       <Toolbar style={activeStyle} onStyleChange={handleStyleChange} onUndo={undo} onRedo={redo} />
 
-      {view.showFormulaBar && (
-        <FormulaBar
-          active={sel.active}
-          value={ui.formulaBarValue}
-          onChange={(v) => uiDispatch({ type: "SET_FORMULA_BAR", value: v })}
-          onCommit={(v) => commitEdit(v)}
-          onCancel={cancelEdit}
-          onFocus={() => {
-            if (sel.active && !ui.isEditingCell) {
-              setEditingRef(cellRef(sel.active.row, sel.active.col));
-              uiDispatch({ type: "SET_EDITING", editing: true });
-            }
-          }}
-        />
-      )}
+      {/* Split layout: sheet area + optional AI panel side-by-side */}
+      <div className="flex flex-1 min-h-0">
+        {/* Sheet area */}
+        <div className="flex flex-col flex-1 min-w-0">
+          {view.showFormulaBar && (
+            <FormulaBar
+              active={sel.active}
+              value={ui.formulaBarValue}
+              onChange={(v) => uiDispatch({ type: "SET_FORMULA_BAR", value: v })}
+              onCommit={(v) => commitEdit(v)}
+              onCancel={cancelEdit}
+              onFocus={() => {
+                if (sel.active && !ui.isEditingCell) {
+                  setEditingRef(cellRef(sel.active.row, sel.active.col));
+                  uiDispatch({ type: "SET_EDITING", editing: true });
+                }
+              }}
+            />
+          )}
 
-      {state.loading ? (
-        <div className="flex flex-1 items-center justify-center text-gray-400 text-sm gap-2">
-          <span className="size-5 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
-          Loading sheet…
+          {state.loading ? (
+            <div className="flex flex-1 items-center justify-center text-gray-400 text-sm gap-2">
+              <span className="size-5 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
+              Loading sheet…
+            </div>
+          ) : (
+            <Grid
+              cells={state.cells}
+              totalRows={totalRows}
+              totalCols={GRID.COLS}
+              columnWidths={state.columnWidths}
+              rowHeights={state.rowHeights}
+              active={sel.active}
+              selection={sel.range}
+              editingRef={editingRef}
+              editValue={ui.formulaBarValue}
+              onCellClick={handleCellClick}
+              onCellDoubleClick={(coord) => startEditAt(coord)}
+              onEditChange={(v) => uiDispatch({ type: "SET_FORMULA_BAR", value: v })}
+              onEditCommit={commitEdit}
+              onEditCancel={cancelEdit}
+              onSelectionDrag={handleSelectionDrag}
+              onColumnResize={handleColumnResize}
+              onRowResize={handleRowResize}
+              onContextMenu={handleContextMenu}
+              onLoadMore={handleLoadMore}
+              showGridlines={view.showGridlines}
+              showHeaders={view.showHeaders}
+              zoom={view.zoom}
+              frozenRows={view.frozenRows}
+              commentedCells={commentedCells}
+              onCommentClick={(coord) => setCommentCell({ row: coord.row, col: coord.col })}
+            />
+          )}
+
+          <SheetTabs
+            sheets={state.sheets}
+            activeSheetId={state.activeSheetId}
+            onSelect={handleSwitchSheet}
+            onAddSheet={handleAddSheet}
+            onDeleteSheet={deleteSheet}
+          />
+
+          {/* Collab connection indicator */}
+          <div className="flex items-center gap-1.5 px-3 py-1 border-t border-gray-100 bg-gray-50 text-[11px] text-gray-400 shrink-0">
+            <span className={`size-1.5 rounded-full ${collab.connected ? "bg-emerald-400" : "bg-red-400"}`} />
+            {collab.connected ? "Live" : "Offline"}
+            {collab.users.length > 0 && (
+              <span className="ml-2 text-gray-400">
+                · {collab.users.length} other{collab.users.length > 1 ? "s" : ""} editing
+              </span>
+            )}
+          </div>
         </div>
-      ) : (
-        <Grid
-          cells={state.cells}
-          totalRows={totalRows}
-          totalCols={GRID.COLS}
-          columnWidths={state.columnWidths}
-          rowHeights={state.rowHeights}
-          active={sel.active}
-          selection={sel.range}
-          editingRef={editingRef}
-          editValue={ui.formulaBarValue}
-          onCellClick={handleCellClick}
-          onCellDoubleClick={(coord) => startEditAt(coord)}
-          onEditChange={(v) => uiDispatch({ type: "SET_FORMULA_BAR", value: v })}
-          onEditCommit={commitEdit}
-          onEditCancel={cancelEdit}
-          onSelectionDrag={handleSelectionDrag}
-          onColumnResize={handleColumnResize}
-          onRowResize={handleRowResize}
-          onContextMenu={handleContextMenu}
-          onLoadMore={handleLoadMore}
-          showGridlines={view.showGridlines}
-          showHeaders={view.showHeaders}
-          zoom={view.zoom}
-          frozenRows={view.frozenRows}
-        />
-      )}
 
-      <SheetTabs
-        sheets={state.sheets}
-        activeSheetId={state.activeSheetId}
-        onSelect={handleSwitchSheet}
-        onAddSheet={handleAddSheet}
-        onDeleteSheet={deleteSheet}
-      />
+        {/* AI sidebar — inline split, not overlaid */}
+        {showAiPanel && (
+          <AiPanel
+            sheetId={state.activeSheetId}
+            onClose={() => setShowAiPanel(false)}
+            onActions={handleAiActions}
+          />
+        )}
+      </div>
 
       <ContextMenu
         visible={contextMenu.visible}
@@ -471,19 +551,12 @@ export default function SheetPage({ params }: PageProps) {
 
       {showShortcuts && <KeyboardShortcutsModal onClose={() => setShowShortcuts(false)} />}
 
-      {showAiPanel && (
-        <AiPanel
-          sheetId={state.activeSheetId}
-          onClose={() => setShowAiPanel(false)}
-        />
-      )}
-
       {commentCell && state.activeSheetId && (
         <CommentModal
           sheetId={state.activeSheetId}
           row={commentCell.row}
           col={commentCell.col}
-          onClose={() => setCommentCell(null)}
+          onClose={() => { setCommentCell(null); refreshComments(); }}
         />
       )}
 
@@ -507,13 +580,13 @@ export default function SheetPage({ params }: PageProps) {
       )}
 
       {file.shareToast && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-gray-900 text-white text-xs font-medium px-4 py-2 rounded-full shadow-lg pointer-events-none">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-gray-900 text-white text-xs font-medium px-4 py-2 rounded-full shadow-lg pointer-events-none animate-slide-up">
           Share link copied to clipboard
         </div>
       )}
 
       {tools.statsToast && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-gray-900 text-white text-xs font-medium px-4 py-2 rounded-full shadow-lg pointer-events-none">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-gray-900 text-white text-xs font-medium px-4 py-2 rounded-full shadow-lg pointer-events-none animate-slide-up">
           {tools.statsToast}
         </div>
       )}

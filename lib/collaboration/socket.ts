@@ -39,6 +39,14 @@ export class SocketManager {
       for (const h of this.connectHandlers) h();
     });
 
+    // Forward connection errors and disconnects so consumers can react
+    this.socket.on("connect_error", (err: Error) => {
+      for (const h of this.handlers) h("connect_error", err.message);
+    });
+    this.socket.on("disconnect", (reason: string) => {
+      for (const h of this.handlers) h("disconnect", reason);
+    });
+
     // Forward all server events to registered message handlers
     this.socket.onAny((event: string, payload: unknown) => {
       for (const h of this.handlers) h(event, payload);

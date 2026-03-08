@@ -8,8 +8,9 @@ import { NewWorkbookModal } from "@/components/dashboard/NewWorkbookModal";
 import { ImportModal } from "@/components/dashboard/ImportModal";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { workbookService, type Workbook } from "@/services/workbookService";
-import { cellService } from "@/services/cellService";
 import { useAuth } from "@/lib/auth/AuthContext";
+import { setPendingImport } from "@/lib/import/pendingImport";
+import { cellRef } from "@/lib/utils/coordinates";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -22,6 +23,7 @@ export default function DashboardPage() {
   const [showImport, setShowImport] = useState(false);
   const [search, setSearch] = useState("");
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+
 
   const loadWorkbooks = useCallback(async () => {
     try {
@@ -56,31 +58,34 @@ export default function DashboardPage() {
 
   async function handleImport(name: string, rows: string[][]) {
     const workbook = await workbookService.create({ name });
-    const firstSheet = workbook.sheets?.[0];
-    const sheetId = firstSheet?.id;
+    let sheetId = workbook.sheets?.[0]?.id;
 
     if (!sheetId) {
-      // Fallback if backend doesn't auto-create
       const sheet = await workbookService.createSheet(workbook.id, { name: "Sheet1" });
-      const cells = rows.flatMap((row, ri) =>
-        row.map((val, ci) => ({ row: ri, col: ci, rawValue: val })),
-      ).filter((c) => c.rawValue);
-      if (cells.length > 0) {
-        await cellService.bulkUpsert(sheet.id, cells);
+      sheetId = sheet.id;
+    }
+
+    // Build frontend store cells + backend API DTOs from parsed rows
+    const cellsForStore: Record<string, { raw: string; computed: string }> = {};
+    const cellsForApi: { row: number; col: number; rawValue: string }[] = [];
+    for (let ri = 0; ri < rows.length; ri++) {
+      for (let ci = 0; ci < rows[ri].length; ci++) {
+        const val = rows[ri][ci];
+        if (!val) continue;
+        cellsForStore[cellRef(ri, ci)] = { raw: val, computed: val };
+        cellsForApi.push({ row: ri, col: ci, rawValue: val });
       }
-      router.push(`/sheet/${workbook.id}`);
-      return;
     }
 
-    // Build cells array from parsed rows
-    const cells = rows.flatMap((row, ri) =>
-      row.map((val, ci) => ({ row: ri, col: ci, rawValue: val })),
-    ).filter((c) => c.rawValue);
+    // Stash import data for the sheet page to pick up instantly
+    setPendingImport({
+      workbookId: workbook.id,
+      sheetId,
+      cellsForStore,
+      cellsForApi,
+    });
 
-    if (cells.length > 0) {
-      await cellService.bulkUpsert(sheetId, cells);
-    }
-
+    // Navigate immediately — sheet renders the data optimistically
     router.push(`/sheet/${workbook.id}`);
   }
 

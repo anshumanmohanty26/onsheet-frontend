@@ -62,6 +62,21 @@ function parseTSV(text: string): string[][] {
     .map((line) => line.split("\t"));
 }
 
+/** Parse any supported file format into a 2D string array */
+async function parseFile(file: File, ext: string): Promise<string[][]> {
+  if (ext === "csv") return parseCSV(await file.text());
+  if (ext === "tsv") return parseTSV(await file.text());
+
+  // Excel / ODS / JSON → use SheetJS
+  const XLSX = await import("xlsx");
+  const buf = await file.arrayBuffer();
+  const wb = XLSX.read(buf, { type: "array" });
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  if (!ws) return [];
+  const rows = XLSX.utils.sheet_to_json<string[]>(ws, { header: 1, defval: "" });
+  return rows.map((r) => (Array.isArray(r) ? r.map(String) : []));
+}
+
 export function ImportModal({ open, onClose, onImport }: ImportModalProps) {
   const [file, setFile] = useState<File | null>(null);
   const [name, setName] = useState("");
@@ -84,23 +99,27 @@ export function ImportModal({ open, onClose, onImport }: ImportModalProps) {
       if (!f) return;
 
       const ext = f.name.split(".").pop()?.toLowerCase();
-      if (ext !== "csv" && ext !== "tsv") {
-        setError("Only .csv and .tsv files are supported.");
+      const SUPPORTED = ["csv", "tsv", "xlsx", "xls", "ods", "json"];
+      if (!ext || !SUPPORTED.includes(ext)) {
+        setError("Supported formats: .xlsx, .xls, .csv, .tsv, .ods, .json");
         return;
       }
 
-      if (f.size > 5 * 1024 * 1024) {
-        setError("File too large (max 5 MB).");
+      if (f.size > 10 * 1024 * 1024) {
+        setError("File too large (max 10 MB).");
         return;
       }
 
       setFile(f);
       setError("");
-      setName(f.name.replace(/\.(csv|tsv)$/i, ""));
+      setName(f.name.replace(/\.(csv|tsv|xlsx|xls|ods|json)$/i, ""));
 
-      const text = await f.text();
-      const rows = ext === "tsv" ? parseTSV(text) : parseCSV(text);
-      setPreview(rows.slice(0, 5));
+      try {
+        const rows = await parseFile(f, ext);
+        setPreview(rows.slice(0, 5));
+      } catch {
+        setError("Could not parse file.");
+      }
     },
     [],
   );
@@ -119,9 +138,8 @@ export function ImportModal({ open, onClose, onImport }: ImportModalProps) {
     setLoading(true);
     setError("");
     try {
-      const text = await file.text();
-      const ext = file.name.split(".").pop()?.toLowerCase();
-      const rows = ext === "tsv" ? parseTSV(text) : parseCSV(text);
+      const ext = file.name.split(".").pop()?.toLowerCase() ?? "csv";
+      const rows = await parseFile(file, ext);
       await onImport(name.trim(), rows);
       reset();
       onClose();
@@ -180,14 +198,14 @@ export function ImportModal({ open, onClose, onImport }: ImportModalProps) {
                   Click to select a file
                 </span>
                 <span className="text-xs text-gray-400 mt-1">
-                  .csv or .tsv (max 5 MB)
+                  .xlsx, .xls, .csv, .tsv, .ods, .json (max 10 MB)
                 </span>
               </>
             )}
             <input
               ref={fileRef}
               type="file"
-              accept=".csv,.tsv"
+              accept=".xlsx,.xls,.csv,.tsv,.ods,.json"
               className="hidden"
               onChange={handleFileChange}
               disabled={loading}
