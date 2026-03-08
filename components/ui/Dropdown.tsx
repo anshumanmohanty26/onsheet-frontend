@@ -7,10 +7,12 @@ interface DropdownProps {
   trigger: ReactNode;
   children: ReactNode;
   align?: "left" | "right";
+  /** Extra classes applied to the floating menu (e.g. fixed width). */
+  menuClassName?: string;
 }
 
 /** Click-triggered dropdown menu that auto-closes on outside click. */
-export function Dropdown({ trigger, children, align = "left" }: DropdownProps) {
+export function Dropdown({ trigger, children, align = "left", menuClassName }: DropdownProps) {
   const [open, setOpen] = useState(false);
   const [coords, setCoords] = useState<{ top: number; left: number; right: number } | null>(null);
   const triggerRef = useRef<HTMLDivElement>(null);
@@ -55,7 +57,7 @@ export function Dropdown({ trigger, children, align = "left" }: DropdownProps) {
                 ? { position: "absolute", top: coords.top + 4, right: coords.right }
                 : { position: "absolute", top: coords.top + 4, left: coords.left }
             }
-            className="z-[9999] min-w-[140px] bg-white rounded-lg shadow-lg border border-gray-200 py-1 animate-in fade-in slide-in-from-top-1 duration-100"
+            className={`z-[9999] min-w-[140px] bg-white rounded-lg shadow-lg border border-gray-200 py-1 animate-in fade-in slide-in-from-top-1 duration-100${menuClassName ? ` ${menuClassName}` : ""}`}
             onClick={() => setOpen(false)}
           >
             {children}

@@ -74,6 +74,11 @@ export default function SheetPage({ params }: PageProps) {
   // editing cell synchronously, even after React has re-rendered sel.active
   // to a new cell (e.g. when the user clicks another cell while editing).
   const editingCellRef = useRef<string | null>(null);
+  // Ref-based mirror of ui.formulaBarValue — always holds the latest typed
+  // value synchronously so handlers that dismiss the editor can commit it
+  // without relying on onBlur (which doesn't fire reliably on unmount).
+  const formulaValueRef = useRef<string>("");
+  formulaValueRef.current = ui.formulaBarValue;
   const [totalRows, setTotalRows] = useState<number>(GRID.ROWS);
 
   // ── Effects ───────────────────────────────────────────────────────────────
@@ -116,6 +121,9 @@ export default function SheetPage({ params }: PageProps) {
   }, [state.loading, state.activeSheetId, loadIntoCrdt]); // state.cells intentionally omitted
 
   useEffect(() => {
+    // Do not overwrite the formula bar while the user is actively editing —
+    // doing so would discard in-progress keystrokes.
+    if (editingCellRef.current) return;
     if (!sel.active) {
       uiDispatch({ type: "SET_FORMULA_BAR", value: "" });
       return;
@@ -135,6 +143,10 @@ export default function SheetPage({ params }: PageProps) {
     (coord: CellCoord, char?: string) => {
       setActive(coord);
       const ref = cellRef(coord.row, coord.col);
+      // If already editing this exact cell (e.g. user double-clicked while
+      // in edit mode), do NOT reset formulaBarValue — that would wipe unsaved
+      // typing. Just ensure the ref is current so the input stays mounted.
+      if (editingCellRef.current === ref) return;
       editingCellRef.current = ref; // sync ref before React state update
       setEditingRef(ref);
       uiDispatch({ type: "SET_EDITING", editing: true });
@@ -158,9 +170,16 @@ export default function SheetPage({ params }: PageProps) {
       uiDispatch({ type: "SET_EDITING", editing: false });
       const parsed = parseCellRef(ref);
       if (!parsed) return;
-      // Evaluate the formula on the client so the result travels with the edit.
-      const computed = isFormula(value) ? String(evaluate(value.slice(1), state.cells)) : value;
-      setCellCrdt(ref, value, state.cells[ref]?.style, computed);
+      // Only write to the CRDT if the value actually changed. If the user
+      // entered edit mode and immediately left (e.g. clicked a toolbar button
+      // without typing), skipping the write prevents a spurious CRDT update
+      // that would temporarily wipe the cell's style and cause a toolbar flash
+      // (e.g. font-size bouncing back to the default before the toolbar action
+      // is processed).
+      if (value !== (state.cells[ref]?.raw ?? "")) {
+        const computed = isFormula(value) ? String(evaluate(value.slice(1), state.cells)) : value;
+        setCellCrdt(ref, value, state.cells[ref]?.style, computed);
+      }
       uiDispatch({ type: "SET_FORMULA_BAR", value });
       if (move) {
         setActive({
@@ -184,8 +203,17 @@ export default function SheetPage({ params }: PageProps) {
 
   const handleCellClick = useCallback(
     (coord: CellCoord, shiftKey: boolean) => {
-      setEditingRef(null);
-      uiDispatch({ type: "SET_EDITING", editing: false });
+      if (!shiftKey && sel.active?.row === coord.row && sel.active?.col === coord.col) {
+        // Same cell clicked — if already editing, let the browser handle cursor
+        // repositioning on the focused input naturally.
+        // If selected but NOT editing, do nothing here; use double-click or a
+        // printable key to enter edit mode. Entering edit on mousedown races with
+        // the upcoming dblclick event and prevents proper word-selection.
+        return;
+      }
+      // Explicitly commit any in-progress edit. We cannot rely on onBlur
+      // because React may unmount the input before the blur event fires.
+      if (editingCellRef.current) commitEdit(formulaValueRef.current);
       if (shiftKey && sel.active) {
         // Extend selection — keep anchor, move end
         setRange({ start: sel.active, end: coord });
@@ -195,16 +223,12 @@ export default function SheetPage({ params }: PageProps) {
         uiDispatch({ type: "SET_FORMULA_BAR", value: cell?.raw ?? "" });
       }
     },
-    [sel.active, state.cells, setRange, setActive],
+    [sel.active, state.cells, setRange, setActive, commitEdit],
   );
 
   const handleColumnSelect = useCallback(
     (col: number, shiftKey: boolean) => {
-      // Dismiss any inline editor (blur fires → commitEdit via editingCellRef)
-      if (editingCellRef.current) {
-        setEditingRef(null);
-        uiDispatch({ type: "SET_EDITING", editing: false });
-      }
+      if (editingCellRef.current) commitEdit(formulaValueRef.current);
       if (shiftKey && sel.active) {
         setRange({ start: { row: 0, col: sel.active.col }, end: { row: totalRows - 1, col } });
       } else {
@@ -212,16 +236,12 @@ export default function SheetPage({ params }: PageProps) {
         setRange({ start: { row: 0, col }, end: { row: totalRows - 1, col } });
       }
     },
-    [sel.active, totalRows, setActive, setRange],
+    [sel.active, totalRows, setActive, setRange, commitEdit],
   );
 
   const handleRowSelect = useCallback(
     (row: number, shiftKey: boolean) => {
-      // Dismiss any inline editor (blur fires → commitEdit via editingCellRef)
-      if (editingCellRef.current) {
-        setEditingRef(null);
-        uiDispatch({ type: "SET_EDITING", editing: false });
-      }
+      if (editingCellRef.current) commitEdit(formulaValueRef.current);
       if (shiftKey && sel.active) {
         setRange({ start: { row: sel.active.row, col: 0 }, end: { row, col: GRID.COLS - 1 } });
       } else {
@@ -229,7 +249,7 @@ export default function SheetPage({ params }: PageProps) {
         setRange({ start: { row, col: 0 }, end: { row, col: GRID.COLS - 1 } });
       }
     },
-    [sel.active, setActive, setRange],
+    [sel.active, setActive, setRange, commitEdit],
   );
 
   const handleSelectionDrag = useCallback(
@@ -312,10 +332,18 @@ export default function SheetPage({ params }: PageProps) {
 
   const handleContextMenu = useCallback(
     (e: React.MouseEvent, coord: CellCoord) => {
-      setActive(coord);
+      // If right-clicking the cell currently being edited, just show the menu
+      // without calling setActive — that would change sel.active's reference,
+      // triggering the formula-bar sync effect and wiping the in-progress value.
+      const editingThisCell =
+        editingCellRef.current === cellRef(coord.row, coord.col);
+      if (!editingThisCell) {
+        if (editingCellRef.current) commitEdit(formulaValueRef.current);
+        setActive(coord);
+      }
       openContextMenu(e);
     },
-    [openContextMenu, setActive],
+    [openContextMenu, setActive, commitEdit],
   );
 
   // ── Resize / load-more ────────────────────────────────────────────────────
@@ -566,7 +594,8 @@ export default function SheetPage({ params }: PageProps) {
               editValue={ui.formulaBarValue}
               onCellClick={handleCellClick}
               onCellDoubleClick={(coord) => {
-                if (canEdit) startEditAt(coord);
+                if (!canEdit) return;
+                startEditAt(coord);
               }}
               onEditChange={(v) => uiDispatch({ type: "SET_FORMULA_BAR", value: v })}
               onEditCommit={commitEdit}

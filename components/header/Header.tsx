@@ -38,7 +38,6 @@ export function Header({ title, workbookId, onRename, onAiToggle, aiOpen }: Head
         title="Back to dashboard"
       >
         <Image src="/onsheet.svg" alt="OnSheet" width={22} height={22} className="rounded" />
-        <span className="text-sm font-bold text-emerald-600 tracking-tight">OnSheet</span>
       </Link>
 
       {/* Editable title */}

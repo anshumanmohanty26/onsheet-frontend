@@ -8,7 +8,7 @@ import { cellInRange } from "@/lib/utils/range";
 import type { SpreadsheetState } from "@/types";
 import type { CellMap, CellStyle } from "@/types/cell";
 import type { CellCoord, SelectionRange } from "@/types/selection";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ColumnHeader } from "./ColumnHeader";
 import { RowHeader } from "./RowHeader";
 
@@ -93,6 +93,56 @@ function formatDisplay(value: string, numberFormat?: string): string {
     default:
       return value;
   }
+}
+
+/** Inline cell editor input. Extracted into its own component so the focus
+ * ref fires only once on mount, not on every re-render. */
+function GridCellInput({
+  value,
+  onChange,
+  onCommit,
+  onCancel,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  onCommit: (v: string, move?: { dr: number; dc: number }) => void;
+  onCancel: () => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  // useLayoutEffect fires synchronously after DOM mutation but BEFORE the
+  // browser repaints. This matters for double-click: the whole
+  // mousedown→mousedown→dblclick sequence fires within a single animation
+  // frame. If we used useEffect (async, after paint) the input would not be
+  // focused yet when dblclick fires, breaking native word-selection and
+  // making the cell appear unresponsive.
+  useLayoutEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.focus();
+      const len = inputRef.current.value.length;
+      inputRef.current.setSelectionRange(len, len);
+    }
+  }, []);
+  return (
+    <input
+      ref={inputRef}
+      className="absolute inset-0 w-full h-full px-1 text-sm text-gray-900 outline-none bg-white z-20"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          onCommit(value, { dr: 1, dc: 0 });
+        } else if (e.key === "Tab") {
+          e.preventDefault();
+          onCommit(value, { dr: 0, dc: e.shiftKey ? -1 : 1 });
+        } else if (e.key === "Escape") {
+          onCancel();
+        }
+      }}
+      onBlur={() => onCommit(value)}
+      spellCheck={false}
+    />
+  );
 }
 
 export function Grid({
@@ -306,7 +356,7 @@ export function Grid({
                         key={col}
                         className={[
                           showGridlines ? "border border-gray-200" : "border border-transparent",
-                          "p-0 overflow-hidden relative bg-amber-50/60",
+                          "p-0 overflow-hidden relative",
                           isActiveCell
                             ? "outline outline-2 outline-emerald-500 outline-offset-[-1px] z-10"
                             : "",
@@ -337,23 +387,11 @@ export function Grid({
                         }
                       >
                         {isEdit ? (
-                          <input
-                            className="absolute inset-0 w-full h-full px-1 text-sm text-gray-900 outline-none bg-white z-20"
+                          <GridCellInput
                             value={editValue}
-                            onChange={(e) => onEditChange(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                e.preventDefault();
-                                onEditCommit(editValue, { dr: 1, dc: 0 });
-                              } else if (e.key === "Tab") {
-                                e.preventDefault();
-                                onEditCommit(editValue, { dr: 0, dc: e.shiftKey ? -1 : 1 });
-                              } else if (e.key === "Escape") {
-                                onEditCancel();
-                              }
-                            }}
-                            onBlur={() => onEditCommit(editValue)}
-                            spellCheck={false}
+                            onChange={onEditChange}
+                            onCommit={onEditCommit}
+                            onCancel={onEditCancel}
                           />
                         ) : (
                           <div
@@ -475,23 +513,11 @@ export function Grid({
                       }
                     >
                       {isEdit ? (
-                        <input
-                          className="absolute inset-0 w-full h-full px-1 text-sm text-gray-900 outline-none bg-white z-20"
+                        <GridCellInput
                           value={editValue}
-                          onChange={(e) => onEditChange(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              e.preventDefault();
-                              onEditCommit(editValue, { dr: 1, dc: 0 });
-                            } else if (e.key === "Tab") {
-                              e.preventDefault();
-                              onEditCommit(editValue, { dr: 0, dc: e.shiftKey ? -1 : 1 });
-                            } else if (e.key === "Escape") {
-                              onEditCancel();
-                            }
-                          }}
-                          onBlur={() => onEditCommit(editValue)}
-                          spellCheck={false}
+                          onChange={onEditChange}
+                          onCommit={onEditCommit}
+                          onCancel={onEditCancel}
                         />
                       ) : (
                         <div

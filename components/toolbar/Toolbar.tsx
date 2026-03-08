@@ -1,6 +1,8 @@
 "use client";
 
 import type { NumberFormatId } from "@/constants/formats";
+import { FONT_LIST } from "@/constants/fonts";
+import { useGoogleFonts } from "@/hooks/useGoogleFonts";
 import type { CellStyle } from "@/types/cell";
 import { useRef } from "react";
 import { AlignmentButtons } from "./AlignmentButtons";
@@ -15,15 +17,6 @@ interface ToolbarProps {
 }
 
 const FONT_SIZES = [6, 7, 8, 9, 10, 11, 12, 14, 16, 18, 20, 22, 24, 28, 32, 36, 48, 72];
-const FONT_FAMILIES = [
-  "Default",
-  "Arial",
-  "Verdana",
-  "Georgia",
-  "Times New Roman",
-  "Courier New",
-  "Trebuchet MS",
-];
 
 function ToolbarButton({
   active,
@@ -58,6 +51,7 @@ function Divider() {
 }
 
 export function Toolbar({ style = {}, onStyleChange, onUndo, onRedo }: ToolbarProps) {
+  useGoogleFonts();
   const textColorRef = useRef<HTMLInputElement>(null);
   const fillColorRef = useRef<HTMLInputElement>(null);
 
@@ -116,11 +110,11 @@ export function Toolbar({ style = {}, onStyleChange, onUndo, onRedo }: ToolbarPr
         onChange={(e) =>
           onStyleChange({ fontFamily: e.target.value === "Default" ? undefined : e.target.value })
         }
-        className="h-8 px-1.5 text-xs rounded border border-gray-200 bg-white text-gray-700 hover:border-gray-300 focus:outline-none focus:ring-1 focus:ring-emerald-400 cursor-pointer"
+        className="h-8 px-1.5 text-xs rounded border border-gray-200 bg-white text-gray-700 hover:border-gray-300 focus:outline-none focus:ring-1 focus:ring-emerald-400 cursor-pointer max-w-[140px]"
       >
-        {FONT_FAMILIES.map((f) => (
-          <option key={f} value={f}>
-            {f}
+        {FONT_LIST.map((f) => (
+          <option key={f.value} value={f.value} style={{ fontFamily: f.value === "Default" ? undefined : f.value }}>
+            {f.label}
           </option>
         ))}
       </select>

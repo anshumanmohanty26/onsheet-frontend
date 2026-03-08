@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "OnSheet — The Modern Spreadsheet",
+  title: "OnSheet",
   description:
     "OnSheet is a powerful, collaborative spreadsheet built for teams. Real-time collaboration, 150+ formulas, and AI-powered data analysis.",
   metadataBase: new URL("https://onsheet.app"),
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
     apple: "/onsheet.svg",
   },
   openGraph: {
-    title: "OnSheet — The Modern Spreadsheet",
+    title: "OnSheet",
     description: "Collaborative spreadsheets, reimagined.",
     type: "website",
     images: [{ url: "/onsheet.svg" }],

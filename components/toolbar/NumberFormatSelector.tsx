@@ -14,6 +14,7 @@ export function NumberFormatSelector({ value = "auto", onChange }: NumberFormatS
 
   return (
     <Dropdown
+      menuClassName="w-52"
       trigger={
         <button
           type="button"
