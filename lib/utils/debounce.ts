@@ -1,4 +1,5 @@
-export function debounce<T extends (...args: unknown[]) => void>(
+// biome-ignore lint/suspicious/noExplicitAny: debounce requires any[] for generic variance
+export function debounce<T extends (...args: any[]) => void>(
   fn: T,
   delay: number,
 ): (...args: Parameters<T>) => void {

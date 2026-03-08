@@ -32,7 +32,7 @@ export function parse(formula: string): ASTNode {
     let left = parseAddSub();
     while (
       peek()?.type === "OPERATOR" &&
-      ["=", "<", ">", "<=", ">=", "<>", "!="].includes(peek()?.value)
+      ["=", "<", ">", "<=", ">=", "<>", "!="].includes(peek()?.value ?? "")
     ) {
       const op = consume().value;
       const right = parseAddSub();

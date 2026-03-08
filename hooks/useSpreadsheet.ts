@@ -26,7 +26,7 @@ export function useSpreadsheet() {
         type: "INIT_SHEET",
         workbookId: wb.id,
         workbookName: wb.name,
-        myRole: wb.myRole,
+        myRole: wb.myRole ?? "OWNER",
         sheets: sheets.map((s, i) => ({
           id: s.id,
           workbookId: wb.id,

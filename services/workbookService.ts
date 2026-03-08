@@ -7,10 +7,11 @@ export interface Workbook {
   createdAt: string;
   updatedAt: string;
   sheets?: Sheet[];
+  myRole?: "OWNER" | "EDITOR" | "VIEWER" | "COMMENTER" | null;
 }
 
 export interface SharedWorkbook extends Workbook {
-  myRole: "viewer" | "editor" | "commenter";
+  myRole: "OWNER" | "EDITOR" | "VIEWER" | "COMMENTER";
   owner: {
     id: string;
     email: string;
