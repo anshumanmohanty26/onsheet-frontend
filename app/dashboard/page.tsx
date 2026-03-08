@@ -135,7 +135,9 @@ export default function DashboardPage() {
             {user ? `Hello, ${user.displayName.split(" ")[0]} 👋` : "My spreadsheets"}
           </h1>
           <p className="mt-1 text-sm text-gray-500">
-            All your spreadsheets in one place
+            {workbooks.length === 0 && sharedWorkbooks.length > 0
+              ? "Spreadsheets shared with you"
+              : "All your spreadsheets in one place"}
           </p>
         </div>
         <div className="flex gap-2">
@@ -157,13 +159,14 @@ export default function DashboardPage() {
       </div>
 
       {/* Search */}
-      {workbooks.length > 0 && (
+      {(workbooks.length > 0 || sharedWorkbooks.length > 0) && (
         <div className="mb-6">
           <input
             type="search"
             placeholder="Search spreadsheets…"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => setSearch(e.target.value)
+            }
             className="w-full max-w-sm rounded-lg border border-gray-200 bg-white px-3.5 py-2 text-sm shadow-sm outline-none placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all"
           />
         </div>
@@ -219,10 +222,18 @@ export default function DashboardPage() {
 
       {/* My spreadsheets grid */}
       {!loading && filtered.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-          {filtered.map((wb) => (
-            <WorkbookCard key={wb.id} workbook={wb} onDelete={handleDelete} />
-          ))}
+        <div>
+          {filteredShared.length > 0 && (
+            <div className="flex items-center gap-2 mb-4">
+              <svg className="size-4 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+              <h2 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">My spreadsheets</h2>
+            </div>
+          )}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            {filtered.map((wb) => (
+              <WorkbookCard key={wb.id} workbook={wb} onDelete={handleDelete} />
+            ))}
+          </div>
         </div>
       )}
 
